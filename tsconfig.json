@@ -7,7 +7,15 @@
     "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": "src",
+    "paths": {
+      "@core/*": ["./core/*"],
+      "@domain/*": ["./domain/*"],
+      "@application/*": ["./application/*"],
+      "@infra/*": ["./infra/*"],
+      "@presentation/*": ["./presentation/*"],
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
