@@ -19,7 +19,10 @@
     "Generative-AI"
   ],
   "dependencies": {
-    "dotenv": "^17.1.0"
+    "@automapper/classes": "^8.8.1",
+    "@automapper/core": "^8.8.1",
+    "dotenv": "^17.1.0",
+    "reflect-metadata": "^0.1.14"
   },
   "devDependencies": {
     "@types/node": "^24.0.11",
