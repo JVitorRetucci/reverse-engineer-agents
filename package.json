@@ -23,6 +23,7 @@
     "@a2a-js/sdk": "^0.3.4",
     "@automapper/classes": "^8.8.1",
     "@automapper/core": "^8.8.1",
+    "@modelcontextprotocol/sdk": "^1.18.2",
     "dotenv": "^17.1.0",
     "express": "^5.1.0",
     "reflect-metadata": "^0.1.14",
