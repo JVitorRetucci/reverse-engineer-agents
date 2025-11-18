@@ -11,6 +11,9 @@ npm-debug.log*
 build/
 dist/
 
+# Test artifacts
+coverage/
+
 # macOS specific
 .DS_Store
 
