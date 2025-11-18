@@ -12,5 +12,5 @@ export abstract class MetricsTool<TSchema extends ZodTypeAny> {
     this.parametersSchema = parametersSchema;
   }
 
-  public abstract invoke(toolParameters: z.infer<TSchema>): CallToolResult;
+  public abstract invoke(toolParameters: z.infer<TSchema>): Promise<CallToolResult>;
 }
