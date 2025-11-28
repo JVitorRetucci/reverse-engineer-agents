@@ -2,7 +2,7 @@ import { CompiledStateGraph } from "@langchain/langgraph";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
-export default async function createDebugGraph(agent: CompiledStateGraph<any, any, any, any, any, any, any, any, any>) {
+export default async function createDebugGraph(graphName: string, agent: CompiledStateGraph<any, any, any, any, any, any, any, any, any>) {
   if (process.env.DEBUG_MODE !== 'true') return;
 
   const graph = await agent.getGraphAsync();
@@ -29,8 +29,8 @@ export default async function createDebugGraph(agent: CompiledStateGraph<any, an
     }
   }
   
-  const filePath = join(debugGraphPath, 'main_agent_graph.png');
-  console.log(`Creating file "main_agent_graph.png" at ${debugGraphPath}...`);
+  const filePath = join(debugGraphPath, `${graphName}.png`);
+  console.log(`Creating file "${graphName}.png" at ${debugGraphPath}...`);
   
   try {
     writeFileSync(filePath, buffer);
