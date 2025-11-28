@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { AgentCard, AgentSkill } from "@a2a-js/sdk";
 import {
@@ -10,7 +11,17 @@ import {
 import { A2AExpressApp } from "@a2a-js/sdk/server/express";
 import { GreetingAgentExecutor } from "agents/main/executor.js";
 
+import {MainAgent} from "./agents/main/agent.js"
+import { HumanMessage } from "@langchain/core/messages";
+import { NodeLLMCaller } from "agents/main/nodes/NodeLLMCaller.js";
+
 async function main() {
+  const a = new MainAgent({ nodeLLMCaller: new NodeLLMCaller()})
+  const r = await a.getNewAgentInstance()
+  const s = await r.invoke({})
+
+  console.log({s})
+
   const skill: AgentSkill = {
     id: "my_first_skill",
     name: "Greet",
@@ -41,9 +52,9 @@ async function main() {
   const appBuilder = new A2AExpressApp(requestHandler);
   const expressApp = appBuilder.setupRoutes(express());
 
-  expressApp.listen(4000, () => {
-    console.log(`🚀 Server started on http://localhost:4000`)
-  })
+  // expressApp.listen(4000, () => {
+  //   console.log(`🚀 Server started on http://localhost:4000`)
+  // })
 }
 
 main().catch(err => console.error(err));
