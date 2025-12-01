@@ -20,7 +20,10 @@ async function main() {
   const r = await a.getNewAgentInstance()
   const s = await r.invoke({})
 
-  console.log({s})
+  s.messages.forEach(msg => console.log(`\n
+  ======= [${msg.type}] =======\n
+  ${msg.content}\n
+  `))
 
   const skill: AgentSkill = {
     id: "my_first_skill",
