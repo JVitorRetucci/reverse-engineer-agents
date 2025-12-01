@@ -12,11 +12,11 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "paths": {
+      "@root/*": ["./*"],
       "@core/*": ["./core/*"],
       "@domain/*": ["./domain/*"],
-      "@application/*": ["./application/*"],
-      "@infra/*": ["./infra/*"],
-      "@presentation/*": ["./presentation/*"],
+      "@agents/*": ["./agents/*"],
+      "@services/*": ["./services/*"],
     }
   },
   "include": ["src"],
