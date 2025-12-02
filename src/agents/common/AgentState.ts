@@ -9,8 +9,3 @@ export const AgentStateSchema = z.object({
 });
 
 export type AgentState = z.infer<typeof AgentStateSchema>
-
-//   messages: z.array(BaseMessage),
-//   iterationLevel: z.number(),
-//   errors: z.array(ApplicationErrorSchema),
-// })

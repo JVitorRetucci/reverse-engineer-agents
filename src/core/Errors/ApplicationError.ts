@@ -1,6 +1,6 @@
-import { CriticalError } from "./CriticalError";
-import { NotFoundError } from "./NotFoundError";
-import { ValidationError } from "./ValidationError";
+import { CriticalError } from "./CriticalError.js";
+import { NotFoundError } from "./NotFoundError.js";
+import { ValidationError } from "./ValidationError.js";
 
 export type ApplicationError = 
   CriticalError | 
