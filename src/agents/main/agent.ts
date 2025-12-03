@@ -2,11 +2,14 @@ import { END, START, StateGraph } from "@langchain/langgraph";
 import { AgentState, AgentStateSchema } from "agents/common/AgentState.js";
 
 import createDebugGraph from "agents/common/utils/createDebugGraph.js";
-import { NodeLLMCaller } from "./nodes/NodeLLMCaller.js";
+import { LLMCallerNode } from "./nodes/LLMCallerNode.js";
 
+interface IMainAgentParams { 
+  llmCallerNode: LLMCallerNode,
+}
 export class MainAgent {
   private readonly NODE_NAMES: Record<string, string> = {
-    node_llm_caller: "NODE_LLM_CALLER",
+    llm_caller_node: "NODE_LLM_CALLER",
   };
 
   private nodes: Record<
@@ -14,17 +17,17 @@ export class MainAgent {
     (state: AgentState) => AgentState | Promise<AgentState>
   > = {};
 
-  constructor({ nodeLLMCaller }: { nodeLLMCaller: NodeLLMCaller }) {
+  constructor({ llmCallerNode }: IMainAgentParams) {
     this.setNodes({
-      [this.NODE_NAMES.node_llm_caller]: nodeLLMCaller.execute,
+      [this.NODE_NAMES.llm_caller_node]: llmCallerNode.execute,
     });
   }
 
   private async compileGraph() {
     const agentGraph = new StateGraph(AgentStateSchema)
       .addNode(
-        this.NODE_NAMES.node_llm_caller,
-        this.nodes[this.NODE_NAMES.node_llm_caller]
+        this.NODE_NAMES.llm_caller_node,
+        this.nodes[this.NODE_NAMES.llm_caller_node]
       )
       .addNode("TEST_NODE", (stt) => {
         console.log(`Iteration count: ${stt.iterationLevel ?? 0}\n`);
@@ -35,11 +38,11 @@ export class MainAgent {
         };
       })
 
-      .addEdge(START, this.NODE_NAMES.node_llm_caller)
-      .addEdge("TEST_NODE", this.NODE_NAMES.node_llm_caller)
+      .addEdge(START, this.NODE_NAMES.llm_caller_node)
+      .addEdge("TEST_NODE", this.NODE_NAMES.llm_caller_node)
 
       .addConditionalEdges({
-        source: this.NODE_NAMES.node_llm_caller,
+        source: this.NODE_NAMES.llm_caller_node,
         path: (state) =>
           state.iterationLevel && state.iterationLevel > 1 ? "true" : "false",
         pathMap: {

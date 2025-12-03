@@ -9,7 +9,7 @@ import { AgentStateSchema } from "agents/common/AgentState.js";
 import { Node } from "agents/common/Node.js";
 import z from "zod";
 
-export class NodeLLMCaller extends Node<z.infer<typeof AgentStateSchema>> {
+export class LLMCallerNode extends Node<z.infer<typeof AgentStateSchema>> {
   public async execute(
     state: z.infer<typeof AgentStateSchema>
   ): Promise<z.infer<typeof AgentStateSchema>> {

@@ -11,12 +11,11 @@ import {
 import { A2AExpressApp } from "@a2a-js/sdk/server/express";
 import { GreetingAgentExecutor } from "agents/main/executor.js";
 
-import {MainAgent} from "./agents/main/agent.js"
-import { HumanMessage } from "@langchain/core/messages";
-import { NodeLLMCaller } from "agents/main/nodes/NodeLLMCaller.js";
+import { MainAgent } from "./agents/main/agent.js"
+import { LLMCallerNode } from "@root/agents/main/nodes/LLMCallerNode.js";
 
 async function main() {
-  const a = new MainAgent({ nodeLLMCaller: new NodeLLMCaller()})
+  const a = new MainAgent({ llmCallerNode: new LLMCallerNode() });
   const r = await a.getNewAgentInstance()
   const s = await r.invoke({})
 
