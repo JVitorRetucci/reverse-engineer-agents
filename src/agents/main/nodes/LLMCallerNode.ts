@@ -6,8 +6,8 @@ import {
 } from "@langchain/core/messages";
 import { AnthropicLLMService } from "@root/agents/common/llmServices/AnthropicLLMService.js";
 import { LLMService } from "@root/domain/agents/common/LLMService.js";
-import { AgentState, AgentStateSchema } from "agents/common/AgentState.js";
-import { Node } from "agents/common/Node.js";
+import { AgentState, AgentStateSchema } from "@root/agents/common/states/AgentState.js";
+import { Node } from "@root/agents/common/nodes/Node.js";
 import z from "zod";
 
 export class LLMCallerNode extends Node<AgentState> {

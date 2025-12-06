@@ -1,5 +1,5 @@
 import { END, START, StateGraph } from "@langchain/langgraph";
-import { AgentState, AgentStateSchema } from "agents/common/AgentState.js";
+import { AgentState, AgentStateSchema } from "@root/agents/common/states/AgentState.js";
 
 import createDebugGraph from "agents/common/utils/createDebugGraph.js";
 import { LLMCallerNode } from "./nodes/LLMCallerNode.js";
