@@ -19,7 +19,7 @@ export class MainAgent {
 
   constructor({ llmCallerNode }: IMainAgentParams) {
     this.setNodes({
-      [this.NODE_NAMES.llm_caller_node]: llmCallerNode.execute,
+      [this.NODE_NAMES.llm_caller_node]: (state: AgentState) => llmCallerNode.execute(state),
     });
   }
 

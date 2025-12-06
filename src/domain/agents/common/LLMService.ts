@@ -5,7 +5,7 @@ export interface ILLMServiceParams {
   maxTokens?: number;
 }
 
-export abstract class LLMService<InvokeParamsType = string, InvokeResponseType = string> {
+export abstract class LLMService<InvokeParamsType = unknown, InvokeResponseType = unknown> {
   constructor(params: ILLMServiceParams) {}
 
   // TODO: Fazer tratamento com EITHER?

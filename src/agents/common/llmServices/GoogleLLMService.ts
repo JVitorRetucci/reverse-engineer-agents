@@ -6,7 +6,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { BaseMessage } from "@langchain/core/messages";
 import { CriticalError } from "@root/core/Errors/CriticalError.js";
 
-export class AnthropicLLMService extends LLMService<
+export class GoogleLLMService extends LLMService<
   BaseMessage[],
   BaseMessage
 > {
