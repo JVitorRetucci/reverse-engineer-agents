@@ -1,15 +1,20 @@
 import { END, START, StateGraph } from "@langchain/langgraph";
-import { AgentState, AgentStateSchema } from "@root/agents/common/states/AgentState.js";
+import {
+  AgentState,
+  AgentStateSchema,
+} from "@root/agents/common/states/AgentState.js";
 
 import createDebugGraph from "agents/common/utils/createDebugGraph.js";
 import { LLMCallerNode } from "./nodes/LLMCallerNode.js";
 
-interface IMainAgentParams { 
-  llmCallerNode: LLMCallerNode,
+interface IMainAgentParams {
+  llmCallerNode: LLMCallerNode;
 }
 export class MainAgent {
   private readonly NODE_NAMES: Record<string, string> = {
-    llm_caller_node: "NODE_LLM_CALLER",
+    llm_caller_node: "LLM_CALLER_NODE",
+    mcp_adapter_node: "MCP_ADAPTER_NODE",
+    agents_caller_node: "AGENTS_CALLER_NODE",
   };
 
   private nodes: Record<
@@ -19,35 +24,51 @@ export class MainAgent {
 
   constructor({ llmCallerNode }: IMainAgentParams) {
     this.setNodes({
-      [this.NODE_NAMES.llm_caller_node]: (state: AgentState) => llmCallerNode.execute(state),
+      // Sent as lambda function to keep context
+      [this.NODE_NAMES.llm_caller_node]: (state: AgentState) =>
+        llmCallerNode.execute(state),
+      [this.NODE_NAMES.mcp_adapter_node]: (state: AgentState) => state,
+      [this.NODE_NAMES.agents_caller_node]: (state: AgentState) => state,
     });
   }
 
   private async compileGraph() {
     const agentGraph = new StateGraph(AgentStateSchema)
+
+      // === Define nodes ===
       .addNode(
         this.NODE_NAMES.llm_caller_node,
         this.nodes[this.NODE_NAMES.llm_caller_node]
       )
-      .addNode("TEST_NODE", (stt) => {
-        console.log(`Iteration count: ${stt.iterationLevel ?? 0}\n`);
+      .addNode(
+        this.NODE_NAMES.mcp_adapter_node,
+        this.nodes[this.NODE_NAMES.mcp_adapter_node]
+      )
+      .addNode(
+        this.NODE_NAMES.agents_caller_node,
+        this.nodes[this.NODE_NAMES.agents_caller_node]
+      )
 
-        return {
-          ...stt,
-          iterationLevel: (stt.iterationLevel ?? 0) + 1,
-        };
-      })
-
+      // === Define static edges ===
       .addEdge(START, this.NODE_NAMES.llm_caller_node)
-      .addEdge("TEST_NODE", this.NODE_NAMES.llm_caller_node)
+      .addEdge(
+        this.NODE_NAMES.mcp_adapter_node,
+        this.NODE_NAMES.llm_caller_node
+      )
+      .addEdge(
+        this.NODE_NAMES.agents_caller_node,
+        this.NODE_NAMES.llm_caller_node
+      )
 
+      // === Define conditional edges ===
       .addConditionalEdges({
         source: this.NODE_NAMES.llm_caller_node,
-        path: (state) =>
-          state.iterationLevel && state.iterationLevel > 1 ? "true" : "false",
+        path: this.pathRouter,
         pathMap: {
-          true: END,
-          false: "TEST_NODE",
+          [END]: END,
+          [this.NODE_NAMES.mcp_adapter_node]: this.NODE_NAMES.mcp_adapter_node,
+          [this.NODE_NAMES.agents_caller_node]:
+            this.NODE_NAMES.agents_caller_node,
         },
       });
 
@@ -56,6 +77,11 @@ export class MainAgent {
     await createDebugGraph("main_agent_graph", agent);
 
     return agent;
+  }
+
+  private pathRouter(state: AgentState): string {
+    // TODO: implement the router based on the LLM Caller node;
+    return END
   }
 
   private setNodes(
