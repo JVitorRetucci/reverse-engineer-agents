@@ -5,24 +5,27 @@ import { LLMCallerNode } from "@root/agents/main/nodes/LLMCallerNode.js";
 import { AnthropicLLMServiceFactory } from "@agents/common/llmServices/factories/AnthropicLLMServiceFactory.js";
 import { MCPClientsAdapter } from "./agents/common/mcpClients/mcpAdapter.js";
 import { GoogleLLMServiceFactory } from "./agents/common/llmServices/factories/GoogleLLMServiceFactory.js";
+import { ToolsNode } from "./agents/main/nodes/ToolsNode.js";
 
 async function startMainAgent(): Promise<MainAgent> {
   const mcpAdapter = MCPClientsAdapter.getMultipleClientsConnection({
     mcpServers: {
        "weather": {
           command: "npm",
-          args: ["run", "--prefix", "[path-to-server]", "start"],
+          args: ["run", "--prefix", process.env.METRICS_MCP_PATH ?? "", "start"],
         }
     }
   });
 
   const allTools = await mcpAdapter.getTools()
 
-  // const llmService = new AnthropicLLMServiceFactory().create({ tools: allTools });
-  const llmService = new GoogleLLMServiceFactory().create({ tools: allTools });
+  const llmService = new AnthropicLLMServiceFactory().create({ tools: allTools });
+  // const llmService = new GoogleLLMServiceFactory().create({ tools: allTools });
+  
   const llmNode = new LLMCallerNode(llmService);
+  const toolsNode = new ToolsNode({ tools: allTools })
 
-  return new MainAgent({ llmCallerNode: llmNode });
+  return new MainAgent({ llmCallerNode: llmNode, toolsNode: toolsNode });
 }
 
 async function main() {

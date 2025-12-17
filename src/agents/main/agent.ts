@@ -6,9 +6,12 @@ import {
 
 import createDebugGraph from "agents/common/utils/createDebugGraph.js";
 import { LLMCallerNode } from "./nodes/LLMCallerNode.js";
+import { AIMessage } from "@langchain/core/messages";
+import { ToolsNode } from "./nodes/ToolsNode.js";
 
 interface IMainAgentParams {
   llmCallerNode: LLMCallerNode;
+  toolsNode: ToolsNode;
 }
 export class MainAgent {
   private readonly NODE_NAMES: Record<string, string> = {
@@ -22,12 +25,13 @@ export class MainAgent {
     (state: AgentState) => AgentState | Promise<AgentState>
   > = {};
 
-  constructor({ llmCallerNode }: IMainAgentParams) {
+  constructor({ llmCallerNode, toolsNode }: IMainAgentParams) {
     this.setNodes({
       // Sent as lambda function to keep context
       [this.NODE_NAMES.llm_caller_node]: (state: AgentState) =>
         llmCallerNode.execute(state),
-      [this.NODE_NAMES.mcp_adapter_node]: (state: AgentState) => state,
+      [this.NODE_NAMES.mcp_adapter_node]: (state: AgentState) =>
+        toolsNode.execute(state),
       [this.NODE_NAMES.agents_caller_node]: (state: AgentState) => state,
     });
   }
@@ -63,7 +67,7 @@ export class MainAgent {
       // === Define conditional edges ===
       .addConditionalEdges({
         source: this.NODE_NAMES.llm_caller_node,
-        path: this.pathRouter,
+        path: this.pathRouter.bind(this),
         pathMap: {
           [END]: END,
           [this.NODE_NAMES.mcp_adapter_node]: this.NODE_NAMES.mcp_adapter_node,
@@ -74,14 +78,19 @@ export class MainAgent {
 
     const agent = agentGraph.compile();
 
-    await createDebugGraph("main_agent_graph", agent);
+    // await createDebugGraph("main_agent_graph", agent);
 
     return agent;
   }
 
   private pathRouter(state: AgentState): string {
     // TODO: implement the router based on the LLM Caller node;
-    return END
+    const lastMessage = state.messages[state.messages.length - 1];
+
+    if (lastMessage instanceof AIMessage)
+      return lastMessage.tool_calls && lastMessage.tool_calls.length > 0 ? this.NODE_NAMES.mcp_adapter_node : END;
+
+    return END;
   }
 
   private setNodes(
