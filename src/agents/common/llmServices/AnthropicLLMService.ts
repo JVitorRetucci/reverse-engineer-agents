@@ -4,33 +4,47 @@ import {
 } from "@domain/agents/common/LLMService.js";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { BaseMessage } from "@langchain/core/messages";
+import { DynamicStructuredTool } from "@langchain/core/tools";
+import { Runnable } from "@langchain/core/runnables";
 import { CriticalError } from "@root/core/Errors/CriticalError.js";
+
+export interface IAnthropicLLMServiceParams
+  extends ILLMServiceParams<DynamicStructuredTool> {}
 
 export class AnthropicLLMService extends LLMService<
   BaseMessage[],
   BaseMessage
 > {
-  private llmServiceInstance: ChatAnthropic;
+  private llmServiceInstance: ChatAnthropic | Runnable<any, any>;
 
-  constructor(params: ILLMServiceParams = {}) {
+  constructor(params?: IAnthropicLLMServiceParams) {
     super(params);
 
-    this.llmServiceInstance = new ChatAnthropic({
-      model: params.model ?? "claude-sonnet-4-20250514",
-      anthropicApiKey: params.secretKey ?? process.env.ANTHROPIC_API_KEY,
-      temperature: params.temperature,
-      maxTokens: params.maxTokens,
+    const baseModel = new ChatAnthropic({
+      model: params?.model ?? "claude-sonnet-4-20250514",
+      anthropicApiKey: params?.secretKey ?? process.env.ANTHROPIC_API_KEY,
+      temperature: params?.temperature,
+      maxTokens: params?.maxTokens,
     });
+
+    let modelWithTools: ChatAnthropic | Runnable<unknown, unknown> = baseModel;
+
+    if (params?.tools && params.tools.length > 0) {
+      modelWithTools = baseModel.bindTools(params.tools);
+    }
+
+    this.llmServiceInstance = modelWithTools;
   }
 
   // TODO: Fazer tratamento com EITHER?
   async invoke(params: BaseMessage[]): Promise<BaseMessage> {
     try {
-      return await this.llmServiceInstance.invoke(params);
+      const response = await this.llmServiceInstance.invoke(params as any);
+      return response as BaseMessage;
     } catch (error) {
       throw new CriticalError(
         error as Error,
-        `Critical Error while calling AnthropicLLMService`
+        `Critical Error while calling AnthropicLLMService`,
       );
     }
   }

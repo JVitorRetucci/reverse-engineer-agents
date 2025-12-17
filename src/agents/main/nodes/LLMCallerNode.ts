@@ -4,11 +4,9 @@ import {
   HumanMessage,
   SystemMessage,
 } from "@langchain/core/messages";
-import { AnthropicLLMService } from "@root/agents/common/llmServices/AnthropicLLMService.js";
 import { LLMService } from "@root/domain/agents/common/LLMService.js";
-import { AgentState, AgentStateSchema } from "@root/agents/common/states/AgentState.js";
+import { AgentState } from "@root/agents/common/states/AgentState.js";
 import { Node } from "@root/agents/common/nodes/Node.js";
-import z from "zod";
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
@@ -21,14 +19,12 @@ export class LLMCallerNode extends Node<AgentState> {
   public async execute(
     state: AgentState
   ): Promise<AgentState> {
-    console.log("Adding message to the list...\n");
-
     const prompt = [
       new SystemMessage(
         "You are a helpful assistant. Respond with anything about the number of the sample message."
       ),
       ...(state.messages ?? []),
-      new HumanMessage(`Sample message number ${state.iterationLevel ?? 0}`),
+      new HumanMessage(`What is the forecast for orlando?\n- Latitude: 28.5383\n- Longitude: -81.3792`),
     ];
 
     const response = await this.llmService.invoke(prompt);
