@@ -17,8 +17,8 @@ export class LLMCallerNode extends Node<AgentState> {
   }
 
   public async execute(state: AgentState): Promise<AgentState> {
+    console.log("ENTERING LLM NODE...\n")
     if (state.messages && state.messages.length > 0) {
-      console.log("LLM CALLER NODE -- DENTRO DO IF")
       const response = await this.llmService.invoke(state.messages);
       
       const newState = {
@@ -28,13 +28,13 @@ export class LLMCallerNode extends Node<AgentState> {
       
       return newState;
     }
-    console.log("LLM CALLER NODE -- FORA DO IF")
     
     const prompt = [
       new SystemMessage("You are a helpful assistant."),
       ...(state.messages ?? []),
       new HumanMessage(
-        `I want an overview of the project located at "/home/jvretucci/Documentos/Projects/reverse-engineer-agents"`
+        // Placeholder locale
+        `I want an overview of the project located at "./", note that I'm in a Windows/Powershell environment`
       ),
     ];
 

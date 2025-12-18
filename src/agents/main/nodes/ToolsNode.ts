@@ -24,7 +24,7 @@ export class ToolsNode<
   }
 
   public async execute(state: AgentState): Promise<AgentState> {
-    console.log("ENTRANDO NO TOOL_NODE");
+    console.log("ENTERING TOOL NODE");
     if (!state.messages.length) return state;
 
     const lastMessage = state.messages[state.messages.length - 1];
