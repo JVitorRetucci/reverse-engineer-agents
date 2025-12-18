@@ -29,11 +29,13 @@ export class MetricsExtractorServer extends McpServer {
 
     const metricsTool = metricsToolFactory.createToolClass();
 
-    this.tool(
+    super.registerTool(
       metricsTool.name,
-      metricsTool.description,
-      metricsTool.parametersSchema,
-      metricsTool.invoke
+      {
+        description: metricsTool.description,
+        inputSchema: metricsTool.parametersSchema,
+      },
+      metricsTool.invoke.bind(metricsTool)
     );
   }
 }
