@@ -6,13 +6,14 @@ import { AnthropicLLMServiceFactory } from "@agents/common/llmServices/factories
 import { MCPClientsAdapter } from "./agents/common/mcpClients/mcpAdapter.js";
 import { GoogleLLMServiceFactory } from "./agents/common/llmServices/factories/GoogleLLMServiceFactory.js";
 import { ToolsNode } from "./agents/main/nodes/ToolsNode.js";
+import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 
-async function startMainAgent(): Promise<MainAgent> {
+async function startMainAgent(): Promise<[MainAgent, MultiServerMCPClient]> {
   const mcpAdapter = MCPClientsAdapter.getMultipleClientsConnection({
     mcpServers: {
-       "weather": {
+       "metrics-extractor": {
           command: "npm",
-          args: ["run", "--prefix", process.env.METRICS_MCP_PATH ?? "", "start"],
+          args: ["run", "--prefix", process.env.METRICS_MCP_PATH ?? "", "mcp-server/metrics-extractor"],
         }
     }
   });
@@ -25,12 +26,12 @@ async function startMainAgent(): Promise<MainAgent> {
   const llmNode = new LLMCallerNode(llmService);
   const toolsNode = new ToolsNode({ tools: allTools })
 
-  return new MainAgent({ llmCallerNode: llmNode, toolsNode: toolsNode });
+  return [new MainAgent({ llmCallerNode: llmNode, toolsNode: toolsNode }), mcpAdapter];
 }
 
 async function main() {
-  const a = await startMainAgent();
-  const r = await a.getNewAgentInstance();
+  const [agent, mcpAdapter] = await startMainAgent();
+  const r = await agent.getNewAgentInstance();
   const s = await r.invoke({});
 
   s.messages.forEach((msg) =>
@@ -39,6 +40,7 @@ async function main() {
   );
 
   console.log("\n=== Ending conversation... ===\n")
+  await mcpAdapter.close()
   return 1;
 }
 

@@ -45,6 +45,7 @@ export class SCCMetricsTool extends MetricsTool<typeof SccMetricsToolSchema> {
 
   public async invoke({ path, sccFlags }: z.infer<typeof SccMetricsToolSchema>): Promise<CallToolResult> {
     try {
+      console.log({lorem: this})
       // Invokes SCC program through Node's child_process
       const { stdout } = await this.customToolExecutor(`scc "${path}" ${sccFlags || ""} --format json`);
   
@@ -58,6 +59,7 @@ export class SCCMetricsTool extends MetricsTool<typeof SccMetricsToolSchema> {
         ],
       };
     } catch (error) {
+      console.error({error})
       const formattedErrorMessage = `Error while getting project static analysis: \n${error}`;
   
       // MCP Tool result format

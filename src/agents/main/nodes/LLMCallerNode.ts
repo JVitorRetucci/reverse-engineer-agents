@@ -34,7 +34,7 @@ export class LLMCallerNode extends Node<AgentState> {
       new SystemMessage("You are a helpful assistant."),
       ...(state.messages ?? []),
       new HumanMessage(
-        `What is the forecast for orlando?\n- Latitude: 28.5383\n- Longitude: -81.3792`
+        `I want an overview of the project located at "/home/jvretucci/Documentos/Projects/reverse-engineer-agents"`
       ),
     ];
 
