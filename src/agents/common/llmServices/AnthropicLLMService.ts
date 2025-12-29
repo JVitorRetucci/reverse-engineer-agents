@@ -1,12 +1,12 @@
+import { CriticalError } from "@core/Errors/CriticalError.js";
 import {
   ILLMServiceParams,
   LLMService,
 } from "@domain/agents/common/LLMService.js";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { BaseMessage } from "@langchain/core/messages";
-import { DynamicStructuredTool } from "@langchain/core/tools";
 import { Runnable } from "@langchain/core/runnables";
-import { CriticalError } from "@root/core/Errors/CriticalError.js";
+import { DynamicStructuredTool } from "@langchain/core/tools";
 
 export interface IAnthropicLLMServiceParams
   extends ILLMServiceParams<DynamicStructuredTool> {}
@@ -44,7 +44,7 @@ export class AnthropicLLMService extends LLMService<
     } catch (error) {
       throw new CriticalError(
         error as Error,
-        `Critical Error while calling AnthropicLLMService`,
+        `Critical Error while calling AnthropicLLMService`
       );
     }
   }

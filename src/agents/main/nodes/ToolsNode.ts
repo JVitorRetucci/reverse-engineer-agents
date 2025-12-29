@@ -1,7 +1,7 @@
-import { Node } from "@root/agents/common/nodes/Node.js";
-import { AgentState } from "@root/agents/common/states/AgentState.js";
+import { Node } from "@agents/common/nodes/Node.js";
+import { AgentState } from "@agents/common/states/AgentState.js";
 import { AIMessage, ToolMessage } from "@langchain/core/messages";
-import { DynamicStructuredTool, Tool } from "@langchain/core/tools";
+import { DynamicStructuredTool } from "@langchain/core/tools";
 
 interface IToolsNodeParams<T> {
   tools: T[];

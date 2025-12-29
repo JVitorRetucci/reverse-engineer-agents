@@ -1,8 +1,8 @@
-import { LLMServiceFactory } from "@domain/agents/common/LLMServiceFactory.js";
 import {
   GoogleLLMService,
   IGoogleLLMServiceParams,
 } from "@agents/common/llmServices/GoogleLLMService.js";
+import { LLMServiceFactory } from "@domain/agents/common/LLMServiceFactory.js";
 
 export class GoogleLLMServiceFactory extends LLMServiceFactory<
   GoogleLLMService,

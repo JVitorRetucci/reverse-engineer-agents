@@ -1,8 +1,8 @@
-import { LLMServiceFactory } from "@domain/agents/common/LLMServiceFactory.js";
 import {
   AnthropicLLMService,
   IAnthropicLLMServiceParams,
 } from "@agents/common/llmServices/AnthropicLLMService.js";
+import { LLMServiceFactory } from "@domain/agents/common/LLMServiceFactory.js";
 
 export class AnthropicLLMServiceFactory extends LLMServiceFactory<
   AnthropicLLMService,

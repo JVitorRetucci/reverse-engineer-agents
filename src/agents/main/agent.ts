@@ -1,13 +1,12 @@
+import createDebugGraph from "@agents/common/utils/createDebugGraph.js";
+import { LLMCallerNode } from "@agents/main/nodes/LLMCallerNode.js";
+import { ToolsNode } from "@agents/main/nodes/ToolsNode.js";
+import { AIMessage } from "@langchain/core/messages";
 import { END, START, StateGraph } from "@langchain/langgraph";
 import {
   AgentState,
   AgentStateSchema,
 } from "@root/agents/common/states/AgentState.js";
-
-import createDebugGraph from "agents/common/utils/createDebugGraph.js";
-import { LLMCallerNode } from "./nodes/LLMCallerNode.js";
-import { AIMessage } from "@langchain/core/messages";
-import { ToolsNode } from "./nodes/ToolsNode.js";
 
 interface IMainAgentParams {
   llmCallerNode: LLMCallerNode;
@@ -78,7 +77,7 @@ export class MainAgent {
 
     const agent = agentGraph.compile();
 
-    // await createDebugGraph("main_agent_graph", agent);
+    await createDebugGraph("main_agent_graph", agent);
 
     return agent;
   }
@@ -88,7 +87,9 @@ export class MainAgent {
     const lastMessage = state.messages[state.messages.length - 1];
 
     if (lastMessage instanceof AIMessage)
-      return lastMessage.tool_calls && lastMessage.tool_calls.length > 0 ? this.NODE_NAMES.mcp_adapter_node : END;
+      return lastMessage.tool_calls && lastMessage.tool_calls.length > 0
+        ? this.NODE_NAMES.mcp_adapter_node
+        : END;
 
     return END;
   }

@@ -1,12 +1,11 @@
+import { Node } from "@agents/common/nodes/Node.js";
+import { AgentState } from "@agents/common/states/AgentState.js";
+import { LLMService } from "@domain/agents/common/LLMService.js";
 import {
-  AIMessage,
   BaseMessage,
   HumanMessage,
   SystemMessage,
 } from "@langchain/core/messages";
-import { LLMService } from "@root/domain/agents/common/LLMService.js";
-import { AgentState } from "@root/agents/common/states/AgentState.js";
-import { Node } from "@root/agents/common/nodes/Node.js";
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
@@ -17,18 +16,18 @@ export class LLMCallerNode extends Node<AgentState> {
   }
 
   public async execute(state: AgentState): Promise<AgentState> {
-    console.log("ENTERING LLM NODE...\n")
+    console.log("ENTERING LLM NODE...\n");
     if (state.messages && state.messages.length > 0) {
       const response = await this.llmService.invoke(state.messages);
-      
+
       const newState = {
         ...state,
         messages: [...state.messages, response],
       };
-      
+
       return newState;
     }
-    
+
     const prompt = [
       new SystemMessage("You are a helpful assistant."),
       ...(state.messages ?? []),

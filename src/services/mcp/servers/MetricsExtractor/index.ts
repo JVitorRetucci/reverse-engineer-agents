@@ -1,27 +1,14 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { mcpServerConfig, MetricsExtractorServer } from "./MetricsExtractor.js";
-import {
-  MetricsToolFactory,
-  SCCMetricsToolFactory,
-} from "../../toolFactories/MetricsToolFactory.js";
+import { MetricsExtractorServer } from "./MetricsExtractor.js";
+import { SCCMetricsToolFactory } from "@services/mcp/toolFactories/MetricsToolFactory.js";
 
-const server = new McpServer(
-  {
-    ...mcpServerConfig.serverInfo,
-  },
-  {
-    ...mcpServerConfig.options,
-  }
-);
-
-const serverr = new MetricsExtractorServer({
+const server = new MetricsExtractorServer({
   metricsToolFactory: new SCCMetricsToolFactory(),
 });
 
 const transport = new StdioServerTransport();
 
-serverr
+server
   .connect(transport)
   .then(() => {
     console.error("Metrics Extractor MCP Server started successfully!");
