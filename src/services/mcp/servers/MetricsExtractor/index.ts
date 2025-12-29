@@ -1,37 +1,19 @@
-import { ServerOptions } from "@modelcontextprotocol/sdk/server";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Implementation } from "@modelcontextprotocol/sdk/types.js";
-import { MetricsToolFactory } from "services/mcp/toolFactories/MetricsToolFactory.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { MetricsExtractorServer } from "./MetricsExtractor.js";
+import { SCCMetricsToolFactory } from "@services/mcp/toolFactories/MetricsToolFactory.js";
 
-interface IMetricsExtractorServerParams {
-  metricsToolFactory: MetricsToolFactory;
-}
+const server = new MetricsExtractorServer({
+  metricsToolFactory: new SCCMetricsToolFactory(),
+});
 
-const mcpServerConfig: {
-  serverInfo: Implementation;
-  options?: ServerOptions;
-} = {
-  serverInfo: {
-    name: "MetricsExtractor",
-    version: "0.1",
-    capabilities: {
-      resources: {},
-      tools: {},
-    },
-  },
-};
+const transport = new StdioServerTransport();
 
-export class MetricsExtractorServer extends McpServer {
-  constructor({ metricsToolFactory }: IMetricsExtractorServerParams) {
-    super(mcpServerConfig.serverInfo);
-
-    const metricsTool = metricsToolFactory.createToolClass();
-
-    this.tool(
-      metricsTool.name,
-      metricsTool.description,
-      metricsTool.parametersSchema,
-      metricsTool.invoke
-    );
-  }
-}
+server
+  .connect(transport)
+  .then(() => {
+    console.error("Metrics Extractor MCP Server started successfully!");
+  })
+  .catch((error) => {
+    console.error(`Fatal error during server initialization: ${error.message}`);
+    process.exit(1);
+  });
