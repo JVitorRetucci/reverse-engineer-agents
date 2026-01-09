@@ -7,6 +7,8 @@ import {
   SystemMessage,
 } from "@langchain/core/messages";
 
+const PROMPT_TEMPLATE = "You are a helpful reverse software engineering assistant. Your objective is to respond to the user's request about this topic, always delegating new sub-tasks to the agents available, so they act executing the task and you send the final answer to the user. NEVER respond to any information requested about other knowledge area." as const;
+
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
 
@@ -17,11 +19,19 @@ export class LLMCallerNode extends Node<AgentState> {
 
   public async execute(state: AgentState): Promise<AgentState> {
     console.log("ENTERING LLM NODE...\n");
+    
+    
+    const currentIteration = state.iterationLevel ?? 0;
+    const nextIteration = currentIteration + 1;
+    
     if (state.messages && state.messages.length > 0) {
-      const response = await this.llmService.invoke(state.messages);
+      if(process.env.DEBUG_MODE === "true")
+        console.log(`...invoking model from LLMCallerNode (iteration: ${nextIteration})`);
+      const response = await this.llmService.invoke([new SystemMessage(PROMPT_TEMPLATE), ...state.messages]);
 
       const newState = {
         ...state,
+        iterationLevel: nextIteration,
         messages: [...state.messages, response],
       };
 
@@ -29,11 +39,10 @@ export class LLMCallerNode extends Node<AgentState> {
     }
 
     const prompt = [
-      new SystemMessage("You are a helpful assistant."),
+      new SystemMessage(PROMPT_TEMPLATE),
       ...(state.messages ?? []),
       new HumanMessage(
-        // Placeholder locale
-        `I want an overview of the project located at "./", note that I'm in a Windows/Powershell environment`
+        `Describe you and what are your capabilities, tools and agents you can access.`
       ),
     ];
 
@@ -41,6 +50,7 @@ export class LLMCallerNode extends Node<AgentState> {
 
     const newState = {
       ...state,
+      iterationLevel: nextIteration,
       messages: [
         ...(state.messages ?? []),
         prompt.pop() as BaseMessage,

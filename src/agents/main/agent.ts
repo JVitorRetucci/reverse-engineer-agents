@@ -7,10 +7,12 @@ import {
   AgentState,
   AgentStateSchema,
 } from "@root/agents/common/states/AgentState.js";
+import { AgentsCallerNode } from "./nodes/AgentsCallerNode.js";
 
 interface IMainAgentParams {
   llmCallerNode: LLMCallerNode;
   toolsNode: ToolsNode;
+  agentsCallerNode: AgentsCallerNode;
 }
 export class MainAgent {
   private readonly NODE_NAMES: Record<string, string> = {
@@ -19,19 +21,34 @@ export class MainAgent {
     agents_caller_node: "AGENTS_CALLER_NODE",
   };
 
+  private readonly MAX_ITERATIONS = parseInt(
+    process.env.MAX_AGENT_ITERATIONS ?? "5",
+    10
+  );
+
   private nodes: Record<
     string,
     (state: AgentState) => AgentState | Promise<AgentState>
   > = {};
+  private agentsCallerNode: AgentsCallerNode;
+  private toolsNode: ToolsNode;
 
-  constructor({ llmCallerNode, toolsNode }: IMainAgentParams) {
+  constructor({
+    llmCallerNode,
+    toolsNode,
+    agentsCallerNode,
+  }: IMainAgentParams) {
+    this.agentsCallerNode = agentsCallerNode;
+    this.toolsNode = toolsNode;
+
     this.setNodes({
       // Sent as lambda function to keep context
       [this.NODE_NAMES.llm_caller_node]: (state: AgentState) =>
         llmCallerNode.execute(state),
       [this.NODE_NAMES.mcp_adapter_node]: (state: AgentState) =>
         toolsNode.execute(state),
-      [this.NODE_NAMES.agents_caller_node]: (state: AgentState) => state,
+      [this.NODE_NAMES.agents_caller_node]: (state: AgentState) =>
+        agentsCallerNode.execute(state),
     });
   }
 
@@ -83,15 +100,35 @@ export class MainAgent {
   }
 
   private pathRouter(state: AgentState): string {
-    // TODO: implement the router based on the LLM Caller node;
+    const currentIteration = state.iterationLevel ?? 0;
+    if (currentIteration >= this.MAX_ITERATIONS) {
+      console.warn(
+        `Max iteration level (${this.MAX_ITERATIONS}) reached. Ending execution.`
+      );
+      return END;
+    }
+
     const lastMessage = state.messages[state.messages.length - 1];
 
-    if (lastMessage instanceof AIMessage)
-      return lastMessage.tool_calls && lastMessage.tool_calls.length > 0
-        ? this.NODE_NAMES.mcp_adapter_node
-        : END;
+    if (!(lastMessage instanceof AIMessage)) {
+      return END;
+    }
 
-    return END;
+    const toolCalls = lastMessage.tool_calls;
+
+    if (!toolCalls || toolCalls.length === 0) {
+      return END;
+    }
+
+    const hasAgentToolCalls = toolCalls.some((toolCall) =>
+      this.agentsCallerNode.isAgentToolCall(toolCall.name)
+    );
+
+    if (hasAgentToolCalls) {
+      return this.NODE_NAMES.agents_caller_node;
+    }
+
+    return this.NODE_NAMES.mcp_adapter_node;
   }
 
   private setNodes(
