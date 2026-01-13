@@ -44,12 +44,26 @@ export class MainAgent {
     this.setNodes({
       // Sent as lambda function to keep context
       [this.NODE_NAMES.llm_caller_node]: (state: AgentState) =>
-        llmCallerNode.execute(state),
+        {
+          this.printDebugMessage("entering **llmCallerNode**...")
+          return llmCallerNode.execute(state)
+        },
       [this.NODE_NAMES.mcp_adapter_node]: (state: AgentState) =>
-        toolsNode.execute(state),
+        {
+          this.printDebugMessage("entering **toolsNode**...")
+          return toolsNode.execute(state)
+        },
       [this.NODE_NAMES.agents_caller_node]: (state: AgentState) =>
-        agentsCallerNode.execute(state),
+        {
+          this.printDebugMessage("entering **agentsCallerNode**...")
+          return agentsCallerNode.execute(state)
+        },
     });
+  }
+
+  private printDebugMessage(str: string): void {
+    if (process.env.DEBUG_MODE === "true")
+      console.log("\x1b[31m[Main Agent]\x1b[0m " + str)
   }
 
   private async compileGraph() {
