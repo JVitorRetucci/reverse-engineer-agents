@@ -13,6 +13,7 @@
     "start": "node dist/main.js",
     "test": "vitest",
     "coverage": "vitest --coverage",
+    "diagnose": "tsx scripts/diagnose-agents.ts",
     "mcp-server/metrics-extractor": "tsx src/services/mcp/servers/MetricsExtractor/index.ts"
   },
   "keywords": [

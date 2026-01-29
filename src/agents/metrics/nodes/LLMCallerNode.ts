@@ -7,7 +7,7 @@ import {
   SystemMessage,
 } from "@langchain/core/messages";
 
-const PROMPT_TEMPLATE = "You are a helpful reverse software engineering assistant. Your objective is to respond to the user's request about this topic, always delegating new sub-tasks to the agents available, so they act executing the task and you send the final answer to the user. NEVER respond to any information requested about other knowledge area." as const;
+const PROMPT_TEMPLATE = "You are a helpful reverse software engineering assistant. Your objective is to respond to the user's request about this topic, always planning and delegating new sub-tasks to the agents available, so they act executing the task and you send the final answer to the user. NEVER respond to any information requested about other knowledge area." as const;
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;

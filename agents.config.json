@@ -1,0 +1,48 @@
+{
+  "agents": [
+    {
+      "id": "main",
+      "name": "Software Reverse Engineering Agent",
+      "description": "An agent capable of performing long and complex software reverse engineering tasks by delegating work to multiple other agents",
+      "port": 4000,
+      "executorPath": "../agents/main/executor.ts",
+      "executorClass": "MainAgentExecutor",
+      "skill": {
+        "id": "software_reverse_engineering",
+        "name": "Software reverse engineering tasks",
+        "description": "Help with complex and multi-step software reverse engineering tasks",
+        "tags": ["software reverse engineering", "software understanding", "software engineering"]
+      }
+    },
+    {
+      "id": "metrics",
+      "name": "Metrics Primary Extractor Component",
+      "description": "Help with raw metrics software data",
+      "port": 4201,
+      "executorPath": "../agents/metrics/executor.ts",
+      "executorClass": "MetricsAgentExecutor",
+      "skill": {
+        "id": "software_metrics_extraction",
+        "name": "Uses SCC software in order to extract metrics from target software",
+        "description": "Help with raw metrics software data",
+        "tags": ["software metrics", "scc", "metrics extractor"],
+        "examples": ["I need metrics from software located at './'", "Give me data about the project located at './folder/extraction_project'"]
+      }
+    },
+    {
+      "id": "lorem",
+      "name": "Lorem Agent 1",
+      "description": "Help with lorem tasks",
+      "port": 4202,
+      "executorPath": "../agents/lorem/executor.ts",
+      "executorClass": "LoremAgentExecutor",
+      "skill": {
+        "id": "software_lorem_extraction",
+        "name": "Uses lorem tool",
+        "description": "Help with lorem software data",
+        "tags": ["software lorem", "scc", "lorem extractor"],
+        "examples": ["I need lorem from software located at './'", "Give me lorem about the project located at './folder/extraction_project'"]
+      }
+    }
+  ]
+}
