@@ -28,21 +28,6 @@
         "tags": ["software metrics", "scc", "metrics extractor"],
         "examples": ["I need metrics from software located at './'", "Give me data about the project located at './folder/extraction_project'"]
       }
-    },
-    {
-      "id": "lorem",
-      "name": "Lorem Agent 1",
-      "description": "Help with lorem tasks",
-      "port": 4202,
-      "executorPath": "../agents/lorem/executor.ts",
-      "executorClass": "LoremAgentExecutor",
-      "skill": {
-        "id": "software_lorem_extraction",
-        "name": "Uses lorem tool",
-        "description": "Help with lorem software data",
-        "tags": ["software lorem", "scc", "lorem extractor"],
-        "examples": ["I need lorem from software located at './'", "Give me lorem about the project located at './folder/extraction_project'"]
-      }
     }
   ]
 }
