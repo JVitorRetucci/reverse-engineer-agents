@@ -77,7 +77,7 @@ export class MainAgentExecutor implements AgentExecutor {
 
       return new DynamicStructuredTool({
         name: agentName,
-        description: `Call agent '${agentName}' via A2A. Use this tool when needed to delegate some task or ask some specific question to the '${agentName}' agent.`,
+        description: `Call agent '${agentName}' via A2A. Use this tool to delegate some task or ask some specific question to the '${agentName}' agent.`,
         schema: AgentToolSchema,
         func: async ({ message }) => {
           return JSON.stringify({
@@ -94,12 +94,13 @@ export class MainAgentExecutor implements AgentExecutor {
     const allMcpTools = await this.mcpClientAdapter.getTools();
 
     const agentsConfig: Record<string, string> = {
-      "main-agent": "http://localhost:4000/.well-known/agent-card.json",
+      "metrics-agent": "http://localhost:4201/.well-known/agent-card.json",
     };
 
     const agentTools = this.createAgentTools(agentsConfig);
 
-    const allTools = [...allMcpTools, ...agentTools];
+    // const allTools = [...allMcpTools, ...agentTools];
+    const allTools = [...agentTools];
 
     const llmService = new AnthropicLLMServiceFactory().create({
       tools: allTools,

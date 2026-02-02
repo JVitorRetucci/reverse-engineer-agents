@@ -44,7 +44,7 @@ export class AgentsCallerNode extends Node<AgentState> {
     return {
       message: {
         messageId: uuidv4(),
-        role: "user",
+        role: "agent",
         parts: [{ kind: "text", text: messageText }],
         kind: "message",
       },
