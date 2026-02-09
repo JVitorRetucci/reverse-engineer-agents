@@ -1,7 +1,7 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ZodTypeAny, z } from "zod";
 
-export abstract class MetricsTool<TSchema extends ZodTypeAny> {
+export abstract class BasicTool<TSchema extends ZodTypeAny> {
   public name: string;
   public description: string;
   public parametersSchema: TSchema;
