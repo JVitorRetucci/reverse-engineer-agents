@@ -95,6 +95,7 @@ export class MainAgentExecutor implements AgentExecutor {
 
     const agentsConfig: Record<string, string> = {
       "metrics-agent": "http://localhost:4201/.well-known/agent-card.json",
+      "artifact-extractor-agent": "http://localhost:4202/.well-known/agent-card.json",
     };
 
     const agentTools = this.createAgentTools(agentsConfig);

@@ -11,7 +11,11 @@
         "id": "software_reverse_engineering",
         "name": "Software reverse engineering tasks",
         "description": "Help with complex and multi-step software reverse engineering tasks",
-        "tags": ["software reverse engineering", "software understanding", "software engineering"]
+        "tags": [
+          "software reverse engineering",
+          "software understanding",
+          "software engineering"
+        ]
       }
     },
     {
@@ -26,7 +30,32 @@
         "name": "Uses SCC software in order to extract metrics from target software",
         "description": "Help with raw metrics software data",
         "tags": ["software metrics", "scc", "metrics extractor"],
-        "examples": ["I need metrics from software located at './'", "Give me data about the project located at './folder/extraction_project'"]
+        "examples": [
+          "I need metrics from software located at './'",
+          "Give me data about the project located at './folder/extraction_project'"
+        ]
+      }
+    },
+    {
+      "id": "artifact-extractor",
+      "name": "Artifact Primary Extractor Component",
+      "description": "Help with artifact related file content extraction",
+      "port": 4202,
+      "executorPath": "../agents/artifactExtractor/executor.ts",
+      "executorClass": "ArtifactExtractorAgentExecutor",
+      "skill": {
+        "id": "artifact_extraction",
+        "name": "Uses powershell commands to navigate through folders and extract artifacts related to the request",
+        "description": "Help with the extraction of content from codebase related to the user's request",
+        "tags": [
+          "artifact extraction",
+          "codebase exploration",
+          "directory navigation"
+        ],
+        "examples": [
+          "I need the files related with class 'UserController'",
+          "Help me recover the content from the file './RegisterView.java'."
+        ]
       }
     }
   ]
