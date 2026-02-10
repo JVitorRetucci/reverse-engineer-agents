@@ -1,4 +1,4 @@
-import { MetricsTool } from "@domain/mcp/servers/Metrics/tools/MetricsTool.js";
+import { BasicTool } from "@domain/mcp/servers/tools/BasicTool.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -14,7 +14,7 @@ const SccMetricsToolSchema = z.object({
     .describe("Optional flags to gather more specific information"),
 });
 
-export class SCCMetricsTool extends MetricsTool<typeof SccMetricsToolSchema> {
+export class SCCMetricsTool extends BasicTool<typeof SccMetricsToolSchema> {
   private customToolExecutor: (command: string) => Promise<{ stdout: string; stderr: string }>;
   
   constructor(customToolExecutor: (command: string) => Promise<{ stdout: string; stderr: string }> = execAsync) {
