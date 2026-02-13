@@ -1,4 +1,5 @@
 {
+  "default_llm_service": "ollama",
   "agents": [
     {
       "id": "main",
