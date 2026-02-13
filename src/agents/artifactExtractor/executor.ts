@@ -4,13 +4,13 @@ import {
   ExecutionEventBus,
   RequestContext,
 } from "@a2a-js/sdk/server";
-import { AnthropicLLMServiceFactory } from "@agents/common/llmServices/factories/AnthropicLLMServiceFactory.js";
-import { MCPClientsAdapter } from "@agents/common/mcpClients/mcpAdapter.js";
-import { AgentState } from "@agents/common/states/AgentState.js";
 import { AgentsCallerNode } from "@agents/artifactExtractor/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/artifactExtractor/nodes/LLMCallerNode.js";
 import { ToolsNode } from "@agents/artifactExtractor/nodes/ToolsNode.js";
-import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
+import { DefaultLLMServiceFactory } from "@agents/common/llmServices/factories/DefaultLLMServiceFactory.js";
+import { MCPClientsAdapter } from "@agents/common/mcpClients/mcpAdapter.js";
+import { AgentState } from "@agents/common/states/AgentState.js";
+import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { CompiledStateGraph } from "@langchain/langgraph";
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
@@ -45,10 +45,9 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
   }
 
   private mapUserMessageToAgentMessages(
-    requestContext: RequestContext
+    requestContext: RequestContext,
   ): BaseMessage[] {
     const parts = requestContext.userMessage.parts ?? [];
-    const role = requestContext.userMessage.role;
 
     const textParts = parts
       .filter((part) => part.kind === "text" && "text" in part)
@@ -57,22 +56,19 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
     const content =
       textParts.length > 0 ? textParts.join("\n\n") : JSON.stringify(parts);
 
-    if (role === "agent") {
-      return [new AIMessage(content)];
-    } else {
-      return [new HumanMessage(content)];
-    }
+    // Para os agentes internos, tratamos qualquer mensagem recebida
+    // (user ou agent no protocolo A2A) como entrada "humana" para o LLM.
+    // Isso evita que o Gemini receba turnos terminando com role=model.
+    return [new HumanMessage(content)];
   }
   private createAgentTools(
-    agents: Record<string, string>
+    agents: Record<string, string>,
   ): DynamicStructuredTool<z.ZodObject<any, any, any, any>>[] {
     return Object.entries(agents).map(([agentName, agentUrl]) => {
       const AgentToolSchema = z.object({
         message: z
           .string()
-          .describe(
-            `Message to be sent to agent '${agentName}'.`
-          ),
+          .describe(`Message to be sent to agent '${agentName}'.`),
       });
 
       return new DynamicStructuredTool({
@@ -101,7 +97,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
 
     const allTools = [...allMcpTools, ...agentTools];
 
-    const llmService = new AnthropicLLMServiceFactory().create({
+    const llmService = new DefaultLLMServiceFactory().create({
       tools: allTools,
     });
 
@@ -127,7 +123,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
 
   async execute(
     requestContext: RequestContext,
-    eventBus: ExecutionEventBus
+    eventBus: ExecutionEventBus,
   ): Promise<void> {
     if (!this.agent) await this.initializeAgent();
     if (!this.agent) return;
@@ -138,7 +134,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
       iterationLevel:
         requestContext.userMessage.role === "user"
           ? 0
-          : requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1,
+          : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
       messages: mappedMessages,
     })) as AgentState;
 
@@ -147,7 +143,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
 
     result.messages.forEach((msg) =>
       console.log(`\n======= [${msg.type}] =======
-      \n${msg.content}`)
+      \n${msg.content}`),
     );
 
     const lastMessage =
@@ -180,6 +176,6 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
 
   async cancelTask(
     taskId: string,
-    eventBus: ExecutionEventBus
+    eventBus: ExecutionEventBus,
   ): Promise<void> {}
 }
