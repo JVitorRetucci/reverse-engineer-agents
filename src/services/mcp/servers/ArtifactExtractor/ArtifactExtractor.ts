@@ -1,12 +1,14 @@
 import { ServerOptions } from "@modelcontextprotocol/sdk/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Implementation } from "@modelcontextprotocol/sdk/types.js";
-import { PowerShellDirectoryNavigationToolFactory } from "@services/mcp/toolFactories/DirectoryNavigationToolFactory.js";
+import { DirectoryNavigationToolFactory, PowerShellDirectoryNavigationToolFactory } from "@services/mcp/toolFactories/DirectoryNavigationToolFactory.js";
+import { GetFileContentToolFactory } from "@services/mcp/toolFactories/GetFileContentToolFactory.js";
 import { ListDirectoriesToolFactory } from "@services/mcp/toolFactories/ListDirectoriesToolFactory.js";
 
 interface IArtifactExtractorServerParams {
   listDirectoriesToolFactory: ListDirectoriesToolFactory;
-  directoryNavigationToolFactory: PowerShellDirectoryNavigationToolFactory;
+  directoryNavigationToolFactory: DirectoryNavigationToolFactory;
+  getFileContentToolFactory: GetFileContentToolFactory;
 }
 
 export const mcpServerConfig: {
@@ -26,11 +28,12 @@ export const mcpServerConfig: {
 };
 
 export class ArtifactExtractorServer extends McpServer {
-  constructor({ listDirectoriesToolFactory, directoryNavigationToolFactory }: IArtifactExtractorServerParams) {
+  constructor({ listDirectoriesToolFactory, directoryNavigationToolFactory, getFileContentToolFactory }: IArtifactExtractorServerParams) {
     super(mcpServerConfig.serverInfo);
 
     const listDirectoriesTool = listDirectoriesToolFactory.createToolClass();
     const directoryNavigationTool = directoryNavigationToolFactory.createToolClass();
+    const getFileContentTool = getFileContentToolFactory.createToolClass();
 
     super.registerTool(
       listDirectoriesTool.name,
@@ -48,6 +51,15 @@ export class ArtifactExtractorServer extends McpServer {
         inputSchema: directoryNavigationTool.parametersSchema,
       },
       directoryNavigationTool.invoke.bind(directoryNavigationTool)
+    );
+
+    super.registerTool(
+      getFileContentTool.name,
+      {
+        description: getFileContentTool.description,
+        inputSchema: getFileContentTool.parametersSchema,
+      },
+      getFileContentTool.invoke.bind(getFileContentTool)
     );
   }
 }

@@ -2,10 +2,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { PowerShellListDirectoriesToolFactory } from "@services/mcp/toolFactories/ListDirectoriesToolFactory.js";
 import { ArtifactExtractorServer } from "./ArtifactExtractor.js";
 import { PowerShellDirectoryNavigationToolFactory } from "@services/mcp/toolFactories/DirectoryNavigationToolFactory.js";
+import { PowerShellGetFileContentToolFactory } from "@services/mcp/toolFactories/GetFileContentToolFactory.js";
 
 const server = new ArtifactExtractorServer({
   listDirectoriesToolFactory: new PowerShellListDirectoriesToolFactory(),
   directoryNavigationToolFactory: new PowerShellDirectoryNavigationToolFactory(),
+  getFileContentToolFactory: new PowerShellGetFileContentToolFactory(),
 });
 
 const transport = new StdioServerTransport();
