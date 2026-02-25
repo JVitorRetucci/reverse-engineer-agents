@@ -6,12 +6,26 @@ import z from "zod";
 
 const execAsync = promisify(exec);
 
+/** On Windows, exec() uses cmd.exe by default; this runs the command in PowerShell. Exported for use in tool factories. */
+export function execPowerShellAsync(
+  command: string,
+): Promise<{ stdout: string; stderr: string }> {
+  return execAsync(command, { shell: "powershell" });
+}
+
 const ListDirectoriesToolSchema = z.object({
   path: z
     .string()
     .nullable()
     .describe(
       "Path to target folder. If null, gets the current folder's info.",
+    ),
+  depth: z
+    .number()
+    .nullable()
+    .optional()
+    .describe(
+      "Search depth to prevent recursive calls when analyzing directories. Warning: Use with caution since it can result in long responses.",
     ),
 });
 
@@ -25,7 +39,7 @@ export class ListDirectoriesTool extends BasicTool<
   constructor(
     customToolExecutor: (
       command: string,
-    ) => Promise<{ stdout: string; stderr: string }> = execAsync,
+    ) => Promise<{ stdout: string; stderr: string }> = execPowerShellAsync,
   ) {
     super(
       "PowerShell_Directory_Listing",
@@ -49,11 +63,14 @@ export class ListDirectoriesTool extends BasicTool<
 
   public async invoke({
     path,
+    depth
   }: z.infer<typeof ListDirectoriesToolSchema>): Promise<CallToolResult> {
     try {
-      // Invokes `ls` command through Node's child_process. Current in the default OS terminal environment (Windows: PowerShell)
+      // path null/undefined => current directory (per schema description)
+      const targetPath = path ?? ".";
+      // Must run in PowerShell (on Windows, exec() defaults to cmd.exe where `ls` doesn't exist)
       const { stdout } = await this.customToolExecutor(
-        `ls "${path}" -Force | select Name, Extension, PSIsContainer | convertto-json`
+        `Get-ChildItem -Path "${targetPath}" -Force ${!!depth ? `-Depth ${depth} ` : ""}| Select-Object Name, Extension, PSIsContainer, DirectoryName | ConvertTo-Json`
       );
 
       // MCP Tool result format
