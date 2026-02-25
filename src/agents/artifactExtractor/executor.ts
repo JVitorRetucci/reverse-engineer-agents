@@ -136,7 +136,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
           ? 0
           : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
       messages: mappedMessages,
-    })) as AgentState;
+    }, { recursionLimit: 100 })) as AgentState;
 
     console.log(`Received message from: ${requestContext.userMessage.role}`);
     console.log(`Messages:\n`);
