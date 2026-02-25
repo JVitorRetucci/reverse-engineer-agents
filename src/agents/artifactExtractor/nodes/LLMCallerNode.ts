@@ -7,7 +7,7 @@ import {
   SystemMessage,
 } from "@langchain/core/messages";
 
-const PROMPT_TEMPLATE = "You are a helpful assistant for tasks related to extracting artifact and relationship between entities in code. Your objective is to respond to the requested task with the content of the requested artifacts." as const;
+const PROMPT_TEMPLATE = "You are a helpful assistant for tasks related to extracting artifact and relationship between entities in code always using the disposed tools to complete your task. Your objective is to respond to the requested task with the content of the requested artifacts." as const;
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
