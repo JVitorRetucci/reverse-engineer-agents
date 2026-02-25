@@ -139,7 +139,7 @@ describe('ListDirectoriesTool', () => {
       await tool.invoke({ path: testPath });
 
       expect(mockExecutor).toHaveBeenCalledWith(
-        `ls "${testPath}" -Force | select Name, Extension, PSIsContainer | convertto-json`
+        `Get-ChildItem -Path "${testPath}" -Force | Select-Object Name, Extension, PSIsContainer | ConvertTo-Json`
       );
     });
 
@@ -150,7 +150,7 @@ describe('ListDirectoriesTool', () => {
       await tool.invoke({ path: testPath });
 
       expect(mockExecutor).toHaveBeenCalledWith(
-        `ls "${testPath}" -Force | select Name, Extension, PSIsContainer | convertto-json`
+        `Get-ChildItem -Path "${testPath}" -Force | Select-Object Name, Extension, PSIsContainer | ConvertTo-Json`
       );
     });
 
@@ -162,13 +162,13 @@ describe('ListDirectoriesTool', () => {
       expect(mockExecutor).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle null path in command', async () => {
+    it('should use current directory (.) when path is null', async () => {
       mockExecutor.mockResolvedValueOnce({ stdout: '[]', stderr: '' });
 
       await tool.invoke({ path: null });
 
       expect(mockExecutor).toHaveBeenCalledWith(
-        `ls "${null}" -Force | select Name, Extension, PSIsContainer | convertto-json`
+        `Get-ChildItem -Path "." -Force | Select-Object Name, Extension, PSIsContainer | ConvertTo-Json`
       );
     });
   });
@@ -207,11 +207,11 @@ describe('ListDirectoriesTool', () => {
       expect(mockExecutor).toHaveBeenCalledTimes(2);
       expect(mockExecutor).toHaveBeenNthCalledWith(
         1,
-        `ls "C:\\folder1" -Force | select Name, Extension, PSIsContainer | convertto-json`
+        `Get-ChildItem -Path "C:\\folder1" -Force | Select-Object Name, Extension, PSIsContainer | ConvertTo-Json`
       );
       expect(mockExecutor).toHaveBeenNthCalledWith(
         2,
-        `ls "C:\\folder2" -Force | select Name, Extension, PSIsContainer | convertto-json`
+        `Get-ChildItem -Path "C:\\folder2" -Force | Select-Object Name, Extension, PSIsContainer | ConvertTo-Json`
       );
     });
   });
@@ -224,7 +224,7 @@ describe('ListDirectoriesTool', () => {
       await tool.invoke({ path: pathWithSpecialChars });
 
       expect(mockExecutor).toHaveBeenCalledWith(
-        `ls "${pathWithSpecialChars}" -Force | select Name, Extension, PSIsContainer | convertto-json`
+        `Get-ChildItem -Path "${pathWithSpecialChars}" -Force | Select-Object Name, Extension, PSIsContainer | ConvertTo-Json`
       );
     });
 
@@ -235,7 +235,7 @@ describe('ListDirectoriesTool', () => {
       await tool.invoke({ path: pathWithQuotes });
 
       expect(mockExecutor).toHaveBeenCalledWith(
-        `ls "${pathWithQuotes}" -Force | select Name, Extension, PSIsContainer | convertto-json`
+        `Get-ChildItem -Path "${pathWithQuotes}" -Force | Select-Object Name, Extension, PSIsContainer | ConvertTo-Json`
       );
     });
 
@@ -255,7 +255,7 @@ describe('ListDirectoriesTool', () => {
       await tool.invoke({ path: unicodePath });
 
       expect(mockExecutor).toHaveBeenCalledWith(
-        `ls "${unicodePath}" -Force | select Name, Extension, PSIsContainer | convertto-json`
+        `Get-ChildItem -Path "${unicodePath}" -Force | Select-Object Name, Extension, PSIsContainer | ConvertTo-Json`
       );
     });
 

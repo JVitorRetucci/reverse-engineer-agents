@@ -1,186 +1,193 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { DirectoryNavigationTool } from './DirectoryNavigationTool.js';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import path from "path";
+import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { DirectoryNavigationTool } from "./DirectoryNavigationTool.js";
 
-describe('DirectoryNavigationTool ', () => {
-  let mockExecutor: ReturnType<typeof vi.fn>;
+describe("DirectoryNavigationTool", () => {
   let tool: DirectoryNavigationTool;
 
   beforeEach(() => {
-    // Setup: creates a simple and reusable mock executor
-    mockExecutor = vi.fn();
-    tool = new DirectoryNavigationTool(mockExecutor);
-  });
-  describe('Constructor', () => {
-    it('should initialize with a custom executor', () => {
-      const customExecutor = vi.fn();
-      const toolInstance = new DirectoryNavigationTool(customExecutor);
-      expect(toolInstance).toBeDefined();
-    });
-
-    it('should have correct tool name', () => {
-      expect(tool['name']).toBe('PowerShell_Directory_Navigation');
-    });
-
-    it('should have description', () => {
-      expect(tool['description']).toBeDefined();
-      expect(tool['description']).toContain('navigate through other directories');
-    });
-
-    it('should have correct schema', () => {
-      expect(tool['parametersSchema']).toBeDefined();
-    });
+    tool = new DirectoryNavigationTool();
   });
 
-  describe('invoke - Success Cases', () => {
-    it('should successfully change directory when given a valid path', async () => {
-      mockExecutor.mockResolvedValueOnce({ stdout: '', stderr: '' });
+  describe("Constructor", () => {
+    it("should initialize correctly", () => {
+      expect(tool).toBeDefined();
+    });
 
-      const result = await tool.invoke({ path: 'C:\\Users\\test' });
+    it("should have correct tool name", () => {
+      expect(tool["name"]).toBe("PowerShell_Directory_Navigation");
+    });
+
+    it("should have description mentioning path calculation", () => {
+      expect(tool["description"]).toBeDefined();
+      expect(tool["description"]).toContain(
+        "calculate the next directory path",
+      );
+    });
+
+    it("should have a parameters schema", () => {
+      expect(tool["parametersSchema"]).toBeDefined();
+    });
+  });
+
+  describe("invoke - Success Cases", () => {
+    it("should resolve an absolute target path ignoring currentPath", async () => {
+      const targetPath = "C:\\Users\\test";
+      const result = await tool.invoke({
+        path: targetPath,
+        currentPath: "C:\\Other\\Base",
+      });
 
       expect(result).toBeDefined();
-      expect(result.content[0].type).toBe('text');
-      expect(result.content[0].text).toBe('');
+      expect(result.content[0].type).toBe("text");
+      expect(result.content[0].text).toBe(path.normalize(targetPath));
       expect(result.isError).toBeUndefined();
     });
 
-    it('should support navigating to parent directory using ..', async () => {
-      mockExecutor.mockResolvedValueOnce({ stdout: '', stderr: '' });
+    it("should resolve a relative path based on currentPath", async () => {
+      const basePath = "C:\\Projects\\MyApp";
+      const result = await tool.invoke({
+        path: "src",
+        currentPath: basePath,
+      });
 
-      const result = await tool.invoke({ path: '..' });
-
-      expect(result.content[0].text).toBe('');
-      expect(mockExecutor).toHaveBeenCalledWith(`cd ".."`);
+      expect(result.content[0].text).toBe(
+        path.resolve(basePath, "src"),
+      );
     });
 
-    it('should return properly formatted CallToolResult', async () => {
-      mockExecutor.mockResolvedValueOnce({ stdout: '', stderr: '' });
+    it("should support navigating to parent directory using ..", async () => {
+      const basePath = "C:\\Projects\\MyApp\\src";
+      const result = await tool.invoke({
+        path: "..",
+        currentPath: basePath,
+      });
 
-      const result: CallToolResult = await tool.invoke({ path: 'C:\\temp' });
+      expect(result.content[0].text).toBe(
+        path.resolve(basePath, ".."),
+      );
+    });
 
-      expect(result).toHaveProperty('content');
+    it("should use process.cwd() when currentPath is omitted", async () => {
+      const cwd = process.cwd();
+      const result = await tool.invoke({
+        path: ".",
+      });
+
+      expect(result.content[0].text).toBe(path.resolve(cwd, "."));
+    });
+
+    it("should use process.cwd() when currentPath is null", async () => {
+      const cwd = process.cwd();
+      const result = await tool.invoke({
+        path: "subfolder",
+        currentPath: null,
+      });
+
+      expect(result.content[0].text).toBe(
+        path.resolve(cwd, "subfolder"),
+      );
+    });
+
+    it("should return properly formatted CallToolResult", async () => {
+      const result: CallToolResult = await tool.invoke({
+        path: "C:\\temp",
+        currentPath: "C:\\base",
+      });
+
+      expect(result).toHaveProperty("content");
       expect(Array.isArray(result.content)).toBe(true);
-      expect(result.content[0]).toHaveProperty('type', 'text');
-      expect(result.content[0]).toHaveProperty('text', '');
+      expect(result.content[0]).toHaveProperty("type", "text");
+      expect(typeof result.content[0].text).toBe("string");
     });
   });
 
-  describe('invoke - Error Cases', () => {
-    it('should return error result when executor throws an error', async () => {
-      const errorMessage = 'Path not found';
-      mockExecutor.mockRejectedValueOnce(new Error(errorMessage));
+  describe("invoke - Error Cases", () => {
+    it("should return error result when path resolution throws an error", async () => {
+      const spy = vi
+        .spyOn(path, "resolve")
+        .mockImplementation(() => {
+          throw new Error("boom");
+        });
 
-      const result = await tool.invoke({ path: 'C:\\invalid-path' });
+      const result = await tool.invoke({
+        path: "relative",
+        currentPath: "C:\\base",
+      });
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('Error while getting project static analysis');
-      expect(result.content[0].text).toContain(errorMessage);
-    });
+      expect(result.content[0].text).toContain(
+        "Error while resolving directory navigation path",
+      );
+      expect(result.content[0].text).toContain("boom");
 
-    it('should handle permission denied errors gracefully', async () => {
-      const errorMessage = 'Access denied';
-      mockExecutor.mockRejectedValueOnce(new Error(errorMessage));
-
-      const result = await tool.invoke({ path: 'C:\\protected-folder' });
-
-      expect(result.isError).toBe(true);
-      expect(result.content[0].type).toBe('text');
-      expect(result.content[0].text).toContain('Error while getting project static analysis');
+      spy.mockRestore();
     });
   });
 
-  describe('invoke - Command Validation', () => {
-    it('should call executor with correct cd command for given path', async () => {
-      mockExecutor.mockResolvedValueOnce({ stdout: '', stderr: '' });
-      const testPath = 'C:\\Users\\test\\Documents';
+  describe("Edge Cases", () => {
+    it("should handle paths with special characters", async () => {
+      const basePath = "C:\\Users";
+      const target = "test$folder\\(backup)";
 
-      await tool.invoke({ path: testPath });
+      const result = await tool.invoke({
+        path: target,
+        currentPath: basePath,
+      });
 
-      expect(mockExecutor).toHaveBeenCalledWith(`cd "${testPath}"`);
+      expect(result.content[0].text).toBe(
+        path.resolve(basePath, target),
+      );
     });
 
-    it('should wrap path in quotes to handle spaces', async () => {
-      mockExecutor.mockResolvedValueOnce({ stdout: '', stderr: '' });
-      const testPath = 'C:\\Program Files\\My App';
+    it("should handle very long path strings", async () => {
+      const basePath = "C:\\";
+      const longRelative = "very\\".repeat(50) + "long\\path";
 
-      await tool.invoke({ path: testPath });
+      const result = await tool.invoke({
+        path: longRelative,
+        currentPath: basePath,
+      });
 
-      expect(mockExecutor).toHaveBeenCalledWith(`cd "${testPath}"`);
+      expect(result.content[0].text).toBe(
+        path.resolve(basePath, longRelative),
+      );
     });
 
-    it('should execute exactly once per invoke call', async () => {
-      mockExecutor.mockResolvedValueOnce({ stdout: '', stderr: '' });
+    it("should handle paths with unicode characters", async () => {
+      const basePath = "C:\\Users\\test";
+      const unicodePath = "文件夹";
 
-      await tool.invoke({ path: 'C:\\test' });
+      const result = await tool.invoke({
+        path: unicodePath,
+        currentPath: basePath,
+      });
 
-      expect(mockExecutor).toHaveBeenCalledTimes(1);
+      expect(result.content[0].text).toBe(
+        path.resolve(basePath, unicodePath),
+      );
     });
-  });
 
-  describe('Integration with DirectoryNavigationTool', () => {
-    it('should successfully execute complete workflow with multiple navigations', async () => {
-      mockExecutor
-        .mockResolvedValueOnce({ stdout: '', stderr: '' })
-        .mockResolvedValueOnce({ stdout: '', stderr: '' });
+    it("should handle consecutive navigations reliably", async () => {
+      const basePath = "C:\\a";
 
-      const res1 = await tool.invoke({ path: 'C:\\project' });
-      const res2 = await tool.invoke({ path: '..' });
+      const res1 = await tool.invoke({
+        path: basePath,
+        currentPath: "C:\\",
+      });
+      const res2 = await tool.invoke({
+        path: "..",
+        currentPath: res1.content[0].text,
+      });
+      const res3 = await tool.invoke({
+        path: "b",
+        currentPath: res2.content[0].text,
+      });
 
       expect(res1.isError).toBeUndefined();
       expect(res2.isError).toBeUndefined();
-      expect(mockExecutor).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('should handle paths with special characters', async () => {
-      mockExecutor.mockResolvedValueOnce({ stdout: '', stderr: '' });
-      const pathWithSpecialChars = 'C:\\Users\\test$folder\\(backup)';
-
-      await tool.invoke({ path: pathWithSpecialChars });
-
-      expect(mockExecutor).toHaveBeenCalledWith(`cd "${pathWithSpecialChars}"`);
-    });
-
-    it('should handle paths with quotes by wrapping in outer quotes', async () => {
-      mockExecutor.mockResolvedValueOnce({ stdout: '', stderr: '' });
-      const pathWithQuotes = 'C:\\test"folder';
-
-      await tool.invoke({ path: pathWithQuotes });
-
-      expect(mockExecutor).toHaveBeenCalledWith(`cd "${pathWithQuotes}"`);
-    });
-
-    it('should handle very long path strings', async () => {
-      mockExecutor.mockResolvedValueOnce({ stdout: '', stderr: '' });
-      const longPath = 'C:\\' + 'very\\'.repeat(50) + 'long\\path';
-
-      await tool.invoke({ path: longPath });
-
-      expect(mockExecutor).toHaveBeenCalled();
-    });
-
-    it('should handle paths with unicode characters', async () => {
-      mockExecutor.mockResolvedValueOnce({ stdout: '', stderr: '' });
-      const unicodePath = 'C:\\Users\\test\\文件夹';
-
-      await tool.invoke({ path: unicodePath });
-
-      expect(mockExecutor).toHaveBeenCalledWith(`cd "${unicodePath}"`);
-    });
-
-    it('should handle consecutive navigations reliably', async () => {
-      mockExecutor
-        .mockResolvedValueOnce({ stdout: '', stderr: '' })
-        .mockResolvedValueOnce({ stdout: '', stderr: '' })
-        .mockResolvedValueOnce({ stdout: '', stderr: '' });
-
-      await tool.invoke({ path: 'C:\\a' });
-      await tool.invoke({ path: '..' });
-      await tool.invoke({ path: 'C:\\a\\b' });
-
-      expect(mockExecutor).toHaveBeenCalledTimes(3);
+      expect(res3.isError).toBeUndefined();
     });
   });
 });
-

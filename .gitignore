@@ -20,3 +20,7 @@ debug/
 
 # Windows specific
 Thumbs.db
+
+# Local management
+_todo/
+_past_responses/

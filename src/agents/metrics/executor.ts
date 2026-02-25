@@ -4,14 +4,14 @@ import {
   ExecutionEventBus,
   RequestContext,
 } from "@a2a-js/sdk/server";
-import { AnthropicLLMServiceFactory } from "@agents/common/llmServices/factories/AnthropicLLMServiceFactory.js";
+import { DefaultLLMServiceFactory } from "@agents/common/llmServices/factories/DefaultLLMServiceFactory.js";
 import { MCPClientsAdapter } from "@agents/common/mcpClients/mcpAdapter.js";
 import { AgentState } from "@agents/common/states/AgentState.js";
 import { MetricsAgent } from "@agents/metrics/agent.js";
 import { AgentsCallerNode } from "@agents/metrics/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/metrics/nodes/LLMCallerNode.js";
 import { ToolsNode } from "@agents/metrics/nodes/ToolsNode.js";
-import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
+import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { CompiledStateGraph } from "@langchain/langgraph";
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
@@ -45,10 +45,9 @@ export class MetricsAgentExecutor implements AgentExecutor {
   }
 
   private mapUserMessageToAgentMessages(
-    requestContext: RequestContext
+    requestContext: RequestContext,
   ): BaseMessage[] {
     const parts = requestContext.userMessage.parts ?? [];
-    const role = requestContext.userMessage.role;
 
     const textParts = parts
       .filter((part) => part.kind === "text" && "text" in part)
@@ -57,22 +56,18 @@ export class MetricsAgentExecutor implements AgentExecutor {
     const content =
       textParts.length > 0 ? textParts.join("\n\n") : JSON.stringify(parts);
 
-    if (role === "agent") {
-      return [new AIMessage(content)];
-    } else {
-      return [new HumanMessage(content)];
-    }
+    // Tratamos sempre como HumanMessage para evitar que o Gemini
+    // receba uma última mensagem com role=model em single-turn.
+    return [new HumanMessage(content)];
   }
   private createAgentTools(
-    agents: Record<string, string>
+    agents: Record<string, string>,
   ): DynamicStructuredTool<z.ZodObject<any, any, any, any>>[] {
     return Object.entries(agents).map(([agentName, agentUrl]) => {
       const AgentToolSchema = z.object({
         message: z
           .string()
-          .describe(
-            `Message to be sent to agent '${agentName}'.`
-          ),
+          .describe(`Message to be sent to agent '${agentName}'.`),
       });
 
       return new DynamicStructuredTool({
@@ -101,7 +96,7 @@ export class MetricsAgentExecutor implements AgentExecutor {
 
     const allTools = [...allMcpTools, ...agentTools];
 
-    const llmService = new AnthropicLLMServiceFactory().create({
+    const llmService = new DefaultLLMServiceFactory().create({
       tools: allTools,
     });
 
@@ -127,7 +122,7 @@ export class MetricsAgentExecutor implements AgentExecutor {
 
   async execute(
     requestContext: RequestContext,
-    eventBus: ExecutionEventBus
+    eventBus: ExecutionEventBus,
   ): Promise<void> {
     if (!this.agent) await this.initializeAgent();
     if (!this.agent) return;
@@ -138,16 +133,16 @@ export class MetricsAgentExecutor implements AgentExecutor {
       iterationLevel:
         requestContext.userMessage.role === "user"
           ? 0
-          : requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1,
+          : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
       messages: mappedMessages,
-    })) as AgentState;
+    }, { recursionLimit: 100 })) as AgentState;
 
     console.log(`Received message from: ${requestContext.userMessage.role}`);
     console.log(`Messages:\n`);
 
     result.messages.forEach((msg) =>
       console.log(`\n======= [${msg.type}] =======
-      \n${msg.content}`)
+      \n${msg.content}`),
     );
 
     const lastMessage =
@@ -180,6 +175,6 @@ export class MetricsAgentExecutor implements AgentExecutor {
 
   async cancelTask(
     taskId: string,
-    eventBus: ExecutionEventBus
+    eventBus: ExecutionEventBus,
   ): Promise<void> {}
 }

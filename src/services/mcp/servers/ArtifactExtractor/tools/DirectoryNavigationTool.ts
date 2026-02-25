@@ -1,63 +1,108 @@
 import { BasicTool } from "@domain/mcp/servers/tools/BasicTool.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { exec } from "child_process";
-import { promisify } from "util";
+import path from "path";
 import z from "zod";
 
-const execAsync = promisify(exec);
-
 const DirectoryNavigationToolSchema = z.object({
+  /**
+   * Target folder path you want to navigate to.
+   *
+   * - Can be an absolute path (e.g. "C:\\Projects\\App")
+   * - Can be relative to `currentPath` (e.g. "src", "..", "src\\components")
+   */
   path: z
     .string()
     .describe(
-      "Path to target folder. Use '..' to go back to parent directory.",
+      "Target folder path. Can be absolute or relative (e.g. '..', 'subfolder').",
+    ),
+  /**
+   * Current path from which `path` will be resolved.
+   *
+   * - If omitted or null, the server will use the MCP process working directory.
+   * - Agents should always reuse the last value returned by this tool as `currentPath`
+   *   to simulate continuous navigation.
+   */
+  currentPath: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "Current folder path used as base to resolve the target path. If null/omitted, uses the MCP server working directory.",
     ),
 });
 
-export class DirectoryNavigationTool  extends BasicTool<
+export class DirectoryNavigationTool extends BasicTool<
   typeof DirectoryNavigationToolSchema
 > {
-  private customToolExecutor: (
-    command: string,
-  ) => Promise<{ stdout: string; stderr: string }>;
-
-  constructor(
-    customToolExecutor: (
-      command: string,
-    ) => Promise<{ stdout: string; stderr: string }> = execAsync,
-  ) {
+  constructor() {
     super(
       "PowerShell_Directory_Navigation",
-      `Used to navigate through other directories within the current or target path.
-      The response should be empty if the command succeed.
-      Use double periods (..) to go back to parent directory.`,
+      `Used to calculate the next directory path based on a current path and a target path.
+      
+      This tool does NOT change any real terminal/session state. Instead, it returns the
+      resolved absolute path that SHOULD be used in subsequent tool calls (like directory listing).
+      
+      Usage guidelines for agents:
+      - Always keep track of the last directory path returned by this tool.
+      - Pass that value back as "currentPath" on the next call.
+      - Use "path" for the navigation intent:
+        - ".." to go up one level
+        - "subfolder" to go into a child folder
+        - An absolute path to jump directly to a specific location
+      
+      Example 1 (go into a subfolder):
+      - Input:
+        {
+          "currentPath": "C:\\Projects\\MyApp",
+          "path": "src"
+        }
+      - Output (text):
+        "C:\\Projects\\MyApp\\src"
+      
+      Example 2 (go back to parent directory):
+      - Input:
+        {
+          "currentPath": "C:\\Projects\\MyApp\\src",
+          "path": ".."
+        }
+      - Output (text):
+        "C:\\Projects\\MyApp"
+      
+      Example 3 (jump to an absolute path):
+      - Input:
+        {
+          "currentPath": "C:\\Projects\\MyApp\\src",
+          "path": "D:\\Workspace"
+        }
+      - Output (text):
+        "D:\\Workspace"
+      `,
       DirectoryNavigationToolSchema,
     );
-    this.customToolExecutor = customToolExecutor;
   }
 
   public async invoke({
-    path,
+    path: targetPath,
+    currentPath,
   }: z.infer<typeof DirectoryNavigationToolSchema>): Promise<CallToolResult> {
     try {
-      // Invokes `ls` command through Node's child_process. Current in the default OS terminal environment (Windows: PowerShell)
-      await this.customToolExecutor(
-        `cd "${path}"`
-      );
+      const basePath = currentPath ?? process.cwd();
 
-      // MCP Tool result format
+      const resolvedPath = path.isAbsolute(targetPath)
+        ? path.normalize(targetPath)
+        : path.resolve(basePath, targetPath);
+
       return {
         content: [
           {
             type: "text",
-            text: "",
+            text: resolvedPath,
           },
         ],
       };
     } catch (error) {
-      const formattedErrorMessage = `Error while getting project static analysis: \n${error}`;
+      const formattedErrorMessage = `Error while resolving directory navigation path: \n${error}`;
 
-      // MCP Tool result format
       return {
         content: [
           {
