@@ -93,6 +93,8 @@ export class MainAgentExecutor implements AgentExecutor {
       "metrics-agent": "http://localhost:4201/.well-known/agent-card.json",
       "artifact-extractor-agent":
         "http://localhost:4202/.well-known/agent-card.json",
+      "diagram-specialist-agent":
+        "http://localhost:4203/.well-known/agent-card.json",
     };
 
     const agentTools = this.createAgentTools(agentsConfig);
@@ -134,13 +136,16 @@ export class MainAgentExecutor implements AgentExecutor {
 
     const mappedMessages = this.mapUserMessageToAgentMessages(requestContext);
 
-    const result = (await this.agent.invoke({
-      iterationLevel:
-        requestContext.userMessage.role === "user"
-          ? 0
-          : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
-      messages: mappedMessages,
-    }, { recursionLimit: 100 })) as AgentState;
+    const result = (await this.agent.invoke(
+      {
+        iterationLevel:
+          requestContext.userMessage.role === "user"
+            ? 0
+            : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
+        messages: mappedMessages,
+      },
+      { recursionLimit: 100 },
+    )) as AgentState;
 
     console.log(`Received message from: ${requestContext.userMessage.role}`);
     console.log(`Messages:\n`);

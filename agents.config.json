@@ -58,6 +58,28 @@
           "Help me recover the content from the file './RegisterView.java'."
         ]
       }
+    },
+    {
+      "id": "diagram-specialist",
+      "name": "Diagram Specialist Primary Extractor Component",
+      "description": "Generates diagrams (primarily using mermaid DSL) based on prompted information",
+      "port": 4203,
+      "executorPath": "../agents/diagramSpecialist/executor.ts",
+      "executorClass": "DiagramSpecialistAgentExecutor",
+      "skill": {
+        "id": "diagram-generation",
+        "name": "Diagram generation",
+        "description": "Generates diagrams using mermaid syntax",
+        "tags": [
+          "diagram generation",
+          "uml",
+          "c4",
+          "graph"
+        ],
+        "examples": [
+          "I need the class diagram of classes related to 'UserController'"
+        ]
+      }
     }
   ]
 }
