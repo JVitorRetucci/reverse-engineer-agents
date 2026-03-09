@@ -20,6 +20,29 @@
       }
     },
     {
+      "id": "architecture-contract-validator",
+      "name": "Architecture Contract Validator Intermediate Agent",
+      "description": "Intermediate agent that validates flows, use-cases, and architectures against a desired architecture by orchestrating PEC agents",
+      "port": 4101,
+      "executorPath": "../agents/architectureContractValidator/executor.ts",
+      "executorClass": "ArchitectureContractValidatorAgentExecutor",
+      "skill": {
+        "id": "architecture_contract_validation",
+        "name": "Architecture contract validation",
+        "description": "Validate if a flow, use-case, or architecture is violating architectural contracts based on the desired architecture",
+        "tags": [
+          "architecture",
+          "architecture validation",
+          "contracts",
+          "intermediate agent"
+        ],
+        "examples": [
+          "Validate if this use-case flow violates our clean architecture contracts",
+          "Given this desired architecture, identify contract violations in the current implementation"
+        ]
+      }
+    },
+    {
       "id": "metrics",
       "name": "Metrics Primary Extractor Component",
       "description": "Help with raw metrics software data",
