@@ -15,7 +15,8 @@
     "coverage": "vitest --coverage",
     "diagnose": "tsx scripts/diagnose-agents.ts",
     "mcp-server/metrics-extractor": "tsx src/services/mcp/servers/MetricsExtractor/index.ts",
-    "mcp-server/artifact-extractor": "tsx src/services/mcp/servers/ArtifactExtractor/index.ts"
+    "mcp-server/artifact-extractor": "tsx src/services/mcp/servers/ArtifactExtractor/index.ts",
+    "mcp-server/diagram-generation-tools": "tsx src/services/mcp/servers/DiagramGenerationTools/index.ts"
   },
   "keywords": [
     "LLM",
@@ -32,6 +33,7 @@
     "@langchain/langgraph": "^1.0.2",
     "@langchain/mcp-adapters": "^1.0.3",
     "@langchain/ollama": "^1.2.2",
+    "@mermaid-js/mermaid-cli": "^11.12.0",
     "@modelcontextprotocol/sdk": "^1.18.2",
     "dotenv": "^17.1.0",
     "express": "^5.1.0",
