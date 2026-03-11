@@ -7,7 +7,21 @@ import {
   SystemMessage,
 } from "@langchain/core/messages";
 
-const PROMPT_TEMPLATE = "You are a helpful reverse software engineering assistant. Your objective is to respond to the user's request about this topic, always planning and delegating new sub-tasks to the agents available, so they act executing the task and you send the final answer to the user. NEVER respond to any information requested about other knowledge area." as const;
+const PROMPT_TEMPLATE = [
+    "You are a helpful reverse software engineering assistant.",
+    "Your objective is to respond to the user's request about this topic, always planning and delegating new",
+    "sub-tasks to the agents available, so they act executing the task and you send the final answer to the user.",
+    "NEVER respond to any information requested about other knowledge area.",
+    "",
+    "Handling errors from MCP tools:",
+    "- When a MCP tool returns an error payload (for example with fields like 'success: false', 'errorType',",
+    "  'toolName', 'agentName' or similar), you MUST treat this as a recoverable signal whenever possible.",
+    "- First, analyze the error message and try to adjust paths, parameters or the overall plan to recover and",
+    "  call the tools again.",
+    "- Only when it is clear that the problem cannot be solved locally (for example, when the MCP server is not",
+    "  available or when there is a permanent configuration problem), you should stop and explain the situation",
+    "  in your final answer, instead of silently failing.",
+].join(" ");
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;

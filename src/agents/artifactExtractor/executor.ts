@@ -102,7 +102,10 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
     });
 
     const llmNode = new LLMCallerNode(llmService);
-    const toolsNode = new ToolsNode({ tools: allMcpTools });
+    const toolsNode = new ToolsNode({
+      tools: allMcpTools,
+      agentName: "artifact-extractor-agent",
+    });
     const agentsCallerNode = new AgentsCallerNode({
       agents: agentsConfig,
     });
@@ -130,13 +133,45 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
 
     const mappedMessages = this.mapUserMessageToAgentMessages(requestContext);
 
-    const result = (await this.agent.invoke({
-      iterationLevel:
-        requestContext.userMessage.role === "user"
-          ? 0
-          : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
-      messages: mappedMessages,
-    }, { recursionLimit: 100 })) as AgentState;
+    let result: AgentState;
+    try {
+      result = (await this.agent.invoke(
+        {
+          iterationLevel:
+            requestContext.userMessage.role === "user"
+              ? 0
+              : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
+          messages: mappedMessages,
+        },
+        { recursionLimit: 100 },
+      )) as AgentState;
+    } catch (error) {
+      console.error(
+        "Unhandled error while executing ArtifactExtractorAgent graph:",
+        error,
+      );
+
+      const responseMessage: Message = {
+        kind: "message",
+        messageId: uuidv4(),
+        role: "agent",
+        parts: [
+          {
+            kind: "data",
+            data: {
+              content:
+                "O ArtifactExtractorAgent encontrou um erro interno ao processar a tarefa. Verifique os logs do servidor para mais detalhes.",
+              type: "error",
+            },
+          },
+        ],
+        contextId: requestContext.contextId,
+      };
+
+      eventBus.publish(responseMessage);
+      eventBus.finished();
+      return;
+    }
 
     console.log(`Received message from: ${requestContext.userMessage.role}`);
     console.log(`Messages:\n`);
