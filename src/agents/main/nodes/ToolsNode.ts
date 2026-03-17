@@ -52,15 +52,15 @@ export class ToolsNode<
             });
           } catch (error) {
             console.error(
-              `Error while invoking MCP tool "${tool.name}" from agent "${this.agentName ?? "unknown"}":`,
+              `Error while invoking tool "${tool.name}" from agent "${this.agentName ?? "main-agent"}":`,
               error,
             );
 
             const errorPayload = {
               success: false,
-              errorType: "MCP_TOOL_EXECUTION_ERROR",
+              errorType: "AGENT_TOOL_EXECUTION_ERROR",
               toolName: tool.name,
-              agentName: this.agentName,
+              agentName: this.agentName ?? "main-agent",
               message: error instanceof Error ? error.message : String(error),
             };
 

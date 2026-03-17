@@ -52,7 +52,7 @@ export class ToolsNode<
 
             const errorPayload = {
               success: false,
-              errorType: "TOOL_EXECUTION_ERROR",
+              errorType: "AGENT_TOOL_EXECUTION_ERROR",
               toolName: tool.name,
               agentName:
                 this.agentName ?? "architecture-contract-validator-agent",
