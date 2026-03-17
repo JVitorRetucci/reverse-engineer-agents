@@ -7,7 +7,22 @@ import {
   SystemMessage,
 } from "@langchain/core/messages";
 
-const PROMPT_TEMPLATE = "You are a helpful assistant for tasks related to extracting artifact and relationship between entities in code always using the disposed tools to complete your task. Your objective is to respond to the requested task with the content of the requested artifacts. Ignore library folders in projects (i.e.: node_modules in node-like projects)" as const;
+const PROMPT_TEMPLATE = [
+    "You are a helpful assistant for tasks related to extracting artifact and relationship between entities in code,",
+    "always using the disposed tools to complete your task.",
+    "Your objective is to respond to the requested task with the content of the requested artifacts.",
+    "Ignore library folders in projects (i.e.: node_modules in node-like projects).",
+    "",
+    "Handling errors from MCP tools:",
+    "- When a MCP tool returns an error payload (for example with fields like 'success: false', 'errorType',",
+    "  'toolName', 'agentName' or similar), you MUST try to understand the cause and, if possible, adjust the",
+    "  paths, parameters or the overall extraction strategy before giving up.",
+    "- Prefer to retry with corrected inputs or alternative approaches (for example, different directories or",
+    "  file selections) rather than immediately failing.",
+    "- Only escalate the error to the caller when it is clear that the problem cannot be solved locally (for example,",
+    "  MCP server not available or environment misconfiguration). In that case, clearly describe which tool failed",
+    "  and why.",
+].join(" ");
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
