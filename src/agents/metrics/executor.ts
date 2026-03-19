@@ -142,7 +142,7 @@ export class MetricsAgentExecutor implements AgentExecutor {
               : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
           messages: mappedMessages,
         },
-        { recursionLimit: 100 },
+        { recursionLimit: 100, runName: "Metrics Agent" },
       )) as AgentState;
     } catch (error) {
       console.error(

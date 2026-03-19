@@ -95,6 +95,8 @@ export class MainAgentExecutor implements AgentExecutor {
         "http://localhost:4202/.well-known/agent-card.json",
       "architecture-contract-validator-agent":
         "http://localhost:4101/.well-known/agent-card.json",
+      "architecture-contract-extractor-agent":
+        "http://localhost:4102/.well-known/agent-card.json",
       "diagram-specialist-agent":
         "http://localhost:4203/.well-known/agent-card.json",
     };
@@ -151,7 +153,7 @@ export class MainAgentExecutor implements AgentExecutor {
               : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
           messages: mappedMessages,
         },
-        { recursionLimit: 100 },
+        { recursionLimit: 100, runName: "Main Agent" },
       )) as AgentState;
     } catch (error) {
       console.error("Unhandled error while executing MainAgent graph:", error);

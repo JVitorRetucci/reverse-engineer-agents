@@ -124,7 +124,7 @@ export class ArchitectureContractValidatorAgentExecutor
               : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
           messages: mappedMessages,
         },
-        { recursionLimit: 100 },
+        { recursionLimit: 100, runName: "Architecture Contract Validator Agent" },
       )) as AgentState;
     } catch (error) {
       console.error(
