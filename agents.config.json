@@ -1,5 +1,5 @@
 {
-  "default_llm_service": "ollama",
+  "default_llm_service": "google",
   "agents": [
     {
       "id": "main",
@@ -22,7 +22,7 @@
     {
       "id": "architecture-contract-validator",
       "name": "Architecture Contract Validator Intermediate Agent",
-      "description": "Intermediate agent that validates flows, use-cases, and architectures against a desired architecture by orchestrating PEC agents",
+      "description": "Intermediate agent that validates flows, use-cases, and architectures against a desired architecture using extractor evidence provided by caller context. It must not call the architecture extractor directly and can use PEC agents only as narrow fallback.",
       "port": 4101,
       "executorPath": "../agents/architectureContractValidator/executor.ts",
       "executorClass": "ArchitectureContractValidatorAgentExecutor",
@@ -39,6 +39,30 @@
         "examples": [
           "Validate if this use-case flow violates our clean architecture contracts",
           "Given this desired architecture, identify contract violations in the current implementation"
+        ]
+      }
+    },
+    {
+      "id": "architecture-contract-extractor",
+      "name": "Architecture Contract Extractor Intermediate Agent",
+      "description": "Intermediate agent that extracts a high-level architecture view scoped to the analyzed use-case and infers expected architecture rules for downstream validation. It is the required first step before Architecture Contract Validator for architecture evidence gathering.",
+      "port": 4102,
+      "executorPath": "../agents/architectureContractExtractor/executor.ts",
+      "executorClass": "ArchitectureContractExtractorAgentExecutor",
+      "skill": {
+        "id": "architecture_contract_extraction",
+        "name": "Architecture contract extraction",
+        "description": "Recover scoped architecture elements/relations for a specific use-case and infer likely architecture contracts expected for the system",
+        "tags": [
+          "architecture",
+          "architecture extraction",
+          "contracts",
+          "intermediate agent",
+          "use-case scoped"
+        ],
+        "examples": [
+          "Extract the architecture involved only in this use-case and infer expected architecture rules",
+          "Given this flow, recover the related architectural components and relationships for contract validation"
         ]
       }
     },

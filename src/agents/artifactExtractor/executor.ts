@@ -143,7 +143,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
               : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
           messages: mappedMessages,
         },
-        { recursionLimit: 100 },
+        { recursionLimit: 100, runName: "Artifact Extractor Agent" },
       )) as AgentState;
     } catch (error) {
       console.error(
