@@ -33,7 +33,7 @@
 ## Conventions
 - Add new agents by creating executor/agent files first, then registering them in `agents.config.json`.
 - Keep the agent-role taxonomy explicit when designing new executors:
-  - `Main` agent: system entry point and user-facing orchestrator; it should delegate work to sub-agents and should not call MCP/external tools directly.
+  - `Main` agent: system entry point and user-facing orchestrator; it should delegate work to sub-agents and should not call PECs or MCP/external tools directly.
   - `PEC` (Primary Extractor Component) agents: specialized workers that interact with MCP tools and extract data from the target environment.
   - `Intermediate` agents (planned): bridge/orchestration layer between `Main` and `PEC` agents for decomposition, routing, and result consolidation.
 - Use port ranges by role to keep allocation predictable:
