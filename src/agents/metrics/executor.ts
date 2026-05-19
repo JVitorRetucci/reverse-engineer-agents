@@ -11,6 +11,9 @@ import { MetricsAgent } from "@agents/metrics/agent.js";
 import { AgentsCallerNode } from "@agents/metrics/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/metrics/nodes/LLMCallerNode.js";
 import { ToolsNode } from "@agents/metrics/nodes/ToolsNode.js";
+import { SkillRegistry } from "@agents/common/skills/SkillRegistry.js";
+import { SkillsContextNode } from "@agents/common/nodes/SkillsContextNode.js";
+import { SkillBodyLoaderNode } from "@agents/common/nodes/SkillBodyLoaderNode.js";
 import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { CompiledStateGraph } from "@langchain/langgraph";
@@ -100,7 +103,17 @@ export class MetricsAgentExecutor implements AgentExecutor {
       tools: allTools,
     });
 
+    const skillRegistry = new SkillRegistry();
+    await skillRegistry.loadFromDir(undefined, { agentName: "metrics" });
+    const skillIds = [
+      "metrics-extractor",
+      ...skillRegistry.getAgentSkillIds("metrics"),
+    ];
+    const skillsPrompt = skillRegistry.getPromptForSkills(skillIds);
+
     const llmNode = new LLMCallerNode(llmService);
+    const skillsContextNode = new SkillsContextNode(skillsPrompt);
+    const skillBodyLoaderNode = new SkillBodyLoaderNode(skillRegistry);
     const toolsNode = new ToolsNode({
       tools: allMcpTools,
       agentName: "metrics-agent",
@@ -113,6 +126,8 @@ export class MetricsAgentExecutor implements AgentExecutor {
       llmCallerNode: llmNode,
       toolsNode: toolsNode,
       agentsCallerNode: agentsCallerNode,
+      skillsContextNode: skillsContextNode,
+      skillBodyLoaderNode: skillBodyLoaderNode,
     });
 
     this.agent =

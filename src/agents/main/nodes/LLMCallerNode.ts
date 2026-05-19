@@ -30,12 +30,7 @@ const PROMPT_TEMPLATE = [
   "- Never call 'architecture-contract-validator-agent' first when architecture evidence is missing.",
   "- If validator returns NEEDS_ARCHITECTURE_EXTRACTION, call extractor and then retry validator with extracted evidence.",
   "",
-  "Available AGENT tools (invocable as tools, not by mention only):",
-  "- 'architecture-contract-extractor-agent': extracts scoped architecture elements, relationships, and inferred contracts for a specific use-case; required evidence source before validation.",
-  "- 'architecture-contract-validator-agent': validates whether a flow/use-case/architecture violates contracts against desired architecture; consumes extractor evidence and may return NEEDS_ARCHITECTURE_EXTRACTION.",
-  "- 'metrics-agent': analyzes source projects and extracts metrics such as lines of code, cyclomatic complexity, coupling, cohesion, and related indicators; supports disk paths including relative paths like '../../lorem/project/'.",
-  "- 'artifact-extractor-agent': extracts concrete artifacts and relationships between code entities such as classes, methods, modules, and dependencies.",
-  "- 'diagram-specialist-agent': generates diagrams from prompts and validates output before responding; it may request more information.",
+  "Skills context is provided in a separate section.",
   "",
   "Tool invocation rule:",
   "- When delegating, you MUST actually invoke the appropriate tool; do not only describe delegation in natural language.",
@@ -62,38 +57,92 @@ const PROMPT_TEMPLATE = [
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
+  private skillsPrompt: string;
 
-  constructor(llmService: LLMService<BaseMessage[], BaseMessage>) {
+  constructor(llmService: LLMService<BaseMessage[], BaseMessage>, skillsPrompt = "") {
     super();
     this.llmService = llmService;
+    this.skillsPrompt = skillsPrompt;
+  }
+
+  private buildSystemPrompt(state: AgentState): string {
+    const parts = [PROMPT_TEMPLATE, state.skillsPrompt ?? this.skillsPrompt].filter(Boolean);
+    if (state.blockedTools && state.blockedTools.length > 0) {
+      const blocked = state.blockedTools.map((b) => `- ${b.toolName} args=${b.args}`).join('\n');
+      parts.push(`Blocked tool calls (do NOT retry):\n${blocked}`);
+    }
+    return parts.join("\n\n");
+  }
+
+  private logPromptPreview(prompt: string): void {
+    const head = prompt.slice(0, 100);
+    const tail = prompt.slice(-100);
+    console.log(`[100 primeiros]\n${head}\n...\n[100 ultimos]\n${tail}`);
+  }
+
+  private extractSelectedSkillId(content: string): string | undefined {
+    const match = content.match(/SKILL_ID:\s*([A-Za-z0-9_-]+)/i);
+    return match?.[1];
+  }
+
+  private extractReasoning(content: string): string | null {
+    if (!content) return null;
+    // Try to capture explicit reasoning cues
+    const lines = String(content).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const cues = lines.filter((l) => /^(Reason|Thought|Plan|Steps?)[:\-]/i.test(l) || /\bbecause\b/i.test(l));
+    if (cues.length > 0) return cues.join(" ");
+    // fallback: return a short excerpt that likely contains reasoning
+    const excerpt = content.replace(/\s+/g, ' ').slice(0, 300);
+    return excerpt;
   }
 
   public async execute(state: AgentState): Promise<AgentState> {
     console.log("ENTERING LLM NODE...\n");
+    const systemPrompt = this.buildSystemPrompt(state);
+    this.logPromptPreview(systemPrompt);
     if (state.messages && state.messages.length > 0) {
       if(process.env.DEBUG_MODE === "true")
         console.log("...invoking model from LLMCallerNode");
-      const response = await this.llmService.invoke([new SystemMessage(PROMPT_TEMPLATE), ...state.messages]);
+      const response = await this.llmService.invoke([
+        new SystemMessage(systemPrompt),
+        ...state.messages,
+      ]);
+
+      const respContent = typeof response.content === "string" ? response.content : "";
+      const selectedSkillId = this.extractSelectedSkillId(respContent);
+
+      console.log('[llm] model response preview:\n' + (respContent.length > 1000 ? respContent.slice(0,1000)+'...' : respContent));
+      const reasoning = this.extractReasoning(respContent);
+      if (reasoning) console.log('[llm] extracted reasoning: ' + reasoning);
+      if (selectedSkillId) console.log('[llm] decision: select skill ' + selectedSkillId);
 
       const newState = {
         ...state,
         iterationLevel: (state.iterationLevel ?? 0) + 1,
         messages: [...state.messages, response],
+        selectedSkillId: selectedSkillId ?? state.selectedSkillId,
+        skillBodyLoaded:
+          selectedSkillId && selectedSkillId !== state.selectedSkillId
+            ? false
+            : state.skillBodyLoaded,
       };
 
       return newState;
     }
 
     const prompt = [
-      new SystemMessage(PROMPT_TEMPLATE),
-      ...(state.messages ?? []),
-      new HumanMessage(
-        // Placeholder locale
-        `I want an overview of the project located at "./", note that I'm in a Windows/Powershell environment`
-      ),
+      new SystemMessage(systemPrompt),
+      ...(state.messages ?? [])
     ];
 
     const response = await this.llmService.invoke(prompt);
+
+    const respContent = typeof response.content === "string" ? response.content : "";
+    const selectedSkillId = this.extractSelectedSkillId(respContent);
+    console.log('[llm] model response preview:\n' + (respContent.length > 1000 ? respContent.slice(0,1000)+'...' : respContent));
+    const reasoning = this.extractReasoning(respContent);
+    if (reasoning) console.log('[llm] extracted reasoning: ' + reasoning);
+    if (selectedSkillId) console.log('[llm] decision: select skill ' + selectedSkillId);
 
     const newState = {
       ...state,
@@ -102,6 +151,11 @@ export class LLMCallerNode extends Node<AgentState> {
         prompt.pop() as BaseMessage,
         response,
       ],
+      selectedSkillId: selectedSkillId ?? state.selectedSkillId,
+      skillBodyLoaded:
+        selectedSkillId && selectedSkillId !== state.selectedSkillId
+          ? false
+          : state.skillBodyLoaded,
     };
 
     return newState;

@@ -1,7 +1,9 @@
 import { Node } from "@agents/common/nodes/Node.js";
 import { AgentState } from "@agents/common/states/AgentState.js";
-import { AIMessage, ToolMessage } from "@langchain/core/messages";
+import { AIMessage, ToolMessage, SystemMessage, BaseMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
+
+const MAX_TOOL_ATTEMPTS = 2;
 
 interface IToolsNodeParams<T> {
   tools: T[];
@@ -36,12 +38,56 @@ export class ToolsNode<
 
     const toolResults: { tool_call_id: string; content: string }[] = [];
     const toolCalls = lastMessage.tool_calls;
+    const attemptCounts = { ...(state.toolAttemptCounts ?? {}) };
+    const updatedErrors = [...(state.errors ?? [])];
+    const extraMessages: BaseMessage[] = [];
+    const blockedTools = [...(state.blockedTools ?? [])];
 
-    for (const toolCall of toolCalls ?? []) {
+    if (!toolCalls || toolCalls.length === 0) {
+      console.log('[tools][artifact] no tool_calls present in last AI message — skipping ToolsNode');
+      return state;
+    }
+
+    for (const toolCall of toolCalls) {
       for (const tool of this.tools) {
         if (tool.name === toolCall.name) {
+          const attemptKey = `${tool.name}:${JSON.stringify(toolCall.args ?? {})}`;
+          const attempts = (attemptCounts[attemptKey] ?? 0) + 1;
+          attemptCounts[attemptKey] = attempts;
+
+          if (attempts > MAX_TOOL_ATTEMPTS) {
+            const errorPayload = {
+              success: false,
+              errorType: "AGENT_TOOL_EXECUTION_ERROR",
+              toolName: tool.name,
+              agentName: this.agentName ?? "artifact-extractor-agent",
+              message: `Tool call retry limit exceeded (${MAX_TOOL_ATTEMPTS}).`,
+              retryExhausted: true,
+            };
+
+            updatedErrors.push(
+              `Retry limit exceeded for tool ${tool.name} (attempts: ${attempts}).`,
+            );
+
+            toolResults.push({
+              tool_call_id: toolCall.id as string,
+              content: JSON.stringify(errorPayload),
+            });
+
+            extraMessages.push(new SystemMessage(`TOOL_RETRY_EXHAUSTED: tool=${tool.name} args=${JSON.stringify(toolCall.args ?? {})} attempts=${attempts}. No further retries will be attempted.`));
+            blockedTools.push({ toolName: tool.name, args: JSON.stringify(toolCall.args ?? {}) });
+
+            break;
+          }
+
           try {
+            if (process.env.DEBUG_MODE === "true") {
+              console.log('[tools][artifact] invoking', JSON.stringify({ tool: tool.name, args: toolCall.args }));
+            }
             const result = await tool.invoke(toolCall.args);
+            console.log('[tools][artifact] raw result:', JSON.stringify(result, null, 2).slice(0, 800));
+            const resultContent = result?.content?.[0]?.text ? result.content[0].text.slice(0, 500) : 'no content';
+            console.log('[tools][artifact] result', JSON.stringify({ tool: tool.name, resultPreview: resultContent, isError: result?.isError }));
             toolResults.push({
               tool_call_id: toolCall.id as string,
               content: JSON.stringify(result),
@@ -64,6 +110,10 @@ export class ToolsNode<
               tool_call_id: toolCall.id as string,
               content: JSON.stringify(errorPayload),
             });
+
+            updatedErrors.push(
+              `Tool ${tool.name} failed: ${errorPayload.message}`,
+            );
           }
 
           break;
@@ -71,11 +121,19 @@ export class ToolsNode<
       }
     }
 
+    if (toolResults.length === 0) {
+      console.warn('[tools][artifact] no tools matched for tool_calls', { toolCalls: toolCalls.map((c: any) => ({ name: c.name, id: c.id })), availableTools: this.tools.map((t) => t.name) });
+    }
+
     return {
       ...state,
+      toolAttemptCounts: attemptCounts,
+      errors: updatedErrors,
+      blockedTools,
       messages: [
         ...state.messages,
         ...toolResults.map((res) => new ToolMessage({ ...res })),
+        ...extraMessages,
       ],
     };
   }

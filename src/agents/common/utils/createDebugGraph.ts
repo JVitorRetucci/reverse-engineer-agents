@@ -30,11 +30,11 @@ export default async function createDebugGraph(graphName: string, agent: Compile
   }
   
   const filePath = join(debugGraphPath, `${graphName}.png`);
-  console.log(`Creating file "${graphName}.png" at ${debugGraphPath}...`);
+  console.log(`🕜 Creating file "${graphName}.png" at ${debugGraphPath}...`);
   
   try {
     writeFileSync(filePath, buffer);
-    console.log(`File created successfully at ${filePath}`);
+    console.log(`🗃️  File created successfully at ${filePath}`);
   } catch (error) {
     console.error(`Error writing file ${filePath}:`, error);
   }

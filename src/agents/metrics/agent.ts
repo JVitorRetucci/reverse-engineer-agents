@@ -14,14 +14,20 @@ import {
 } from "@root/agents/common/states/AgentState.js";
 import { AgentsCallerNode } from "./nodes/AgentsCallerNode.js";
 import { BaseAgent } from "@agents/common/agents/BaseAgent.js";
+import { SkillsContextNode } from "@agents/common/nodes/SkillsContextNode.js";
+import { SkillBodyLoaderNode } from "@agents/common/nodes/SkillBodyLoaderNode.js";
 
 interface IMetricsAgentParams {
   llmCallerNode: LLMCallerNode;
   toolsNode: ToolsNode;
   agentsCallerNode: AgentsCallerNode;
+  skillsContextNode: SkillsContextNode;
+  skillBodyLoaderNode: SkillBodyLoaderNode;
 }
 export class MetricsAgent extends BaseAgent<AgentState> {
   private readonly NODE_NAMES: Record<string, string> = {
+    skills_context_node: "SKILLS_CONTEXT_NODE",
+    skill_body_node: "SKILL_BODY_NODE",
     llm_caller_node: "LLM_CALLER_NODE",
     mcp_adapter_node: "MCP_ADAPTER_NODE",
     agents_caller_node: "AGENTS_CALLER_NODE",
@@ -29,11 +35,15 @@ export class MetricsAgent extends BaseAgent<AgentState> {
 
   private agentsCallerNode: AgentsCallerNode;
   private toolsNode: ToolsNode;
+  private skillsContextNode: SkillsContextNode;
+  private skillBodyLoaderNode: SkillBodyLoaderNode;
 
   constructor({
     llmCallerNode,
     toolsNode,
     agentsCallerNode,
+    skillsContextNode,
+    skillBodyLoaderNode,
   }: IMetricsAgentParams) {
     super();
 
@@ -41,8 +51,17 @@ export class MetricsAgent extends BaseAgent<AgentState> {
 
     this.agentsCallerNode = agentsCallerNode;
     this.toolsNode = toolsNode;
-
+    this.skillsContextNode = skillsContextNode;
+    this.skillBodyLoaderNode = skillBodyLoaderNode;
     this.setNodes({
+      [this.NODE_NAMES.skills_context_node]: (state: AgentState) => {
+        this.printDebugMessage("entering **skillsContextNode**...");
+        return skillsContextNode.execute(state);
+      },
+      [this.NODE_NAMES.skill_body_node]: (state: AgentState) => {
+        this.printDebugMessage("entering **skillBodyLoaderNode**...");
+        return skillBodyLoaderNode.execute(state);
+      },
       // Sent as lambda function to keep context
       [this.NODE_NAMES.llm_caller_node]: (state: AgentState) => {
         this.printDebugMessage("entering **llmCallerNode**...");
@@ -63,6 +82,14 @@ export class MetricsAgent extends BaseAgent<AgentState> {
     CompiledStateGraph<AgentState, AgentState, string | "__start__">
   > {
     const agentGraph = new StateGraph(AgentStateSchema)
+      .addNode(
+        this.NODE_NAMES.skills_context_node,
+        this.nodes[this.NODE_NAMES.skills_context_node]
+      )
+      .addNode(
+        this.NODE_NAMES.skill_body_node,
+        this.nodes[this.NODE_NAMES.skill_body_node]
+      )
 
       // === Define nodes ===
       .addNode(
@@ -79,7 +106,15 @@ export class MetricsAgent extends BaseAgent<AgentState> {
       )
 
       // === Define static edges ===
-      .addEdge(START, this.NODE_NAMES.llm_caller_node)
+      .addEdge(START, this.NODE_NAMES.skills_context_node)
+      .addEdge(
+        this.NODE_NAMES.skills_context_node,
+        this.NODE_NAMES.llm_caller_node
+      )
+      .addEdge(
+        this.NODE_NAMES.skill_body_node,
+        this.NODE_NAMES.llm_caller_node
+      )
       .addEdge(
         this.NODE_NAMES.mcp_adapter_node,
         this.NODE_NAMES.llm_caller_node
@@ -95,6 +130,7 @@ export class MetricsAgent extends BaseAgent<AgentState> {
         path: this.pathRouter.bind(this),
         pathMap: {
           [END]: END,
+          [this.NODE_NAMES.skill_body_node]: this.NODE_NAMES.skill_body_node,
           [this.NODE_NAMES.mcp_adapter_node]: this.NODE_NAMES.mcp_adapter_node,
           [this.NODE_NAMES.agents_caller_node]:
             this.NODE_NAMES.agents_caller_node,
@@ -125,6 +161,10 @@ export class MetricsAgent extends BaseAgent<AgentState> {
 
     if (!(lastMessage instanceof AIMessage)) {
       return END;
+    }
+
+    if (state.selectedSkillId && !state.skillBodyLoaded) {
+      return this.NODE_NAMES.skill_body_node;
     }
 
     const toolCalls = lastMessage.tool_calls;

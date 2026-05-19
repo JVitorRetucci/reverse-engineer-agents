@@ -1,6 +1,8 @@
 import { AgentsCallerNode } from "@agents/diagramSpecialist/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/diagramSpecialist/nodes/LLMCallerNode.js";
 import { ToolsNode } from "@agents/diagramSpecialist/nodes/ToolsNode.js";
+import { SkillsContextNode } from "@agents/common/nodes/SkillsContextNode.js";
+import { SkillBodyLoaderNode } from "@agents/common/nodes/SkillBodyLoaderNode.js";
 import { BaseAgent } from "@agents/common/agents/BaseAgent.js";
 import createDebugGraph from "@agents/common/utils/createDebugGraph.js";
 import { AIMessage } from "@langchain/core/messages";
@@ -19,9 +21,13 @@ interface IDiagramSpecialistAgentParams {
   llmCallerNode: LLMCallerNode;
   toolsNode: ToolsNode;
   agentsCallerNode: AgentsCallerNode;
+  skillsContextNode: SkillsContextNode;
+  skillBodyLoaderNode: SkillBodyLoaderNode;
 }
 export class DiagramSpecialistAgent extends BaseAgent<AgentState> {
   private readonly NODE_NAMES: Record<string, string> = {
+    skills_context_node: "SKILLS_CONTEXT_NODE",
+    skill_body_node: "SKILL_BODY_NODE",
     llm_caller_node: "LLM_CALLER_NODE",
     mcp_adapter_node: "MCP_ADAPTER_NODE",
     agents_caller_node: "AGENTS_CALLER_NODE",
@@ -29,11 +35,15 @@ export class DiagramSpecialistAgent extends BaseAgent<AgentState> {
 
   private agentsCallerNode: AgentsCallerNode;
   private toolsNode: ToolsNode;
+  private skillsContextNode: SkillsContextNode;
+  private skillBodyLoaderNode: SkillBodyLoaderNode;
 
   constructor({
     llmCallerNode,
     toolsNode,
     agentsCallerNode,
+    skillsContextNode,
+    skillBodyLoaderNode,
   }: IDiagramSpecialistAgentParams) {
     super();
 
@@ -41,8 +51,17 @@ export class DiagramSpecialistAgent extends BaseAgent<AgentState> {
 
     this.agentsCallerNode = agentsCallerNode;
     this.toolsNode = toolsNode;
-
+    this.skillsContextNode = skillsContextNode;
+    this.skillBodyLoaderNode = skillBodyLoaderNode;
     this.setNodes({
+      [this.NODE_NAMES.skills_context_node]: (state: AgentState) => {
+        this.printDebugMessage("entering **skillsContextNode**...");
+        return skillsContextNode.execute(state);
+      },
+      [this.NODE_NAMES.skill_body_node]: (state: AgentState) => {
+        this.printDebugMessage("entering **skillBodyLoaderNode**...");
+        return skillBodyLoaderNode.execute(state);
+      },
       // Sent as lambda function to keep context
       [this.NODE_NAMES.llm_caller_node]: (state: AgentState) => {
         this.printDebugMessage("entering **llmCallerNode**...");
@@ -66,6 +85,14 @@ export class DiagramSpecialistAgent extends BaseAgent<AgentState> {
 
       // === Define nodes ===
       .addNode(
+        this.NODE_NAMES.skills_context_node,
+        this.nodes[this.NODE_NAMES.skills_context_node]
+      )
+      .addNode(
+        this.NODE_NAMES.skill_body_node,
+        this.nodes[this.NODE_NAMES.skill_body_node]
+      )
+      .addNode(
         this.NODE_NAMES.llm_caller_node,
         this.nodes[this.NODE_NAMES.llm_caller_node]
       )
@@ -79,7 +106,15 @@ export class DiagramSpecialistAgent extends BaseAgent<AgentState> {
       )
 
       // === Define static edges ===
-      .addEdge(START, this.NODE_NAMES.llm_caller_node)
+      .addEdge(START, this.NODE_NAMES.skills_context_node)
+      .addEdge(
+        this.NODE_NAMES.skills_context_node,
+        this.NODE_NAMES.llm_caller_node
+      )
+      .addEdge(
+        this.NODE_NAMES.skill_body_node,
+        this.NODE_NAMES.llm_caller_node
+      )
       .addEdge(
         this.NODE_NAMES.mcp_adapter_node,
         this.NODE_NAMES.llm_caller_node
@@ -95,6 +130,7 @@ export class DiagramSpecialistAgent extends BaseAgent<AgentState> {
         path: this.pathRouter.bind(this),
         pathMap: {
           [END]: END,
+          [this.NODE_NAMES.skill_body_node]: this.NODE_NAMES.skill_body_node,
           [this.NODE_NAMES.mcp_adapter_node]: this.NODE_NAMES.mcp_adapter_node,
           [this.NODE_NAMES.agents_caller_node]:
             this.NODE_NAMES.agents_caller_node,
@@ -125,6 +161,10 @@ export class DiagramSpecialistAgent extends BaseAgent<AgentState> {
 
     if (!(lastMessage instanceof AIMessage)) {
       return END;
+    }
+
+    if (state.selectedSkillId && !state.skillBodyLoaded) {
+      return this.NODE_NAMES.skill_body_node;
     }
 
     const toolCalls = lastMessage.tool_calls;

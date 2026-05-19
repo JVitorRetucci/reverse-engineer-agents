@@ -22,7 +22,6 @@ export class OllamaLLMService extends LLMService<
 
     const baseModel = new ChatOllama({
       model: params?.model ?? "gemma4:31b-cloud",
-      // model: params?.model ?? "glm-5:cloud",
       temperature: params?.temperature,
       
     });

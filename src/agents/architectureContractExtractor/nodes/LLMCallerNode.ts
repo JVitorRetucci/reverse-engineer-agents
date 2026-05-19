@@ -29,9 +29,7 @@ const PROMPT_TEMPLATE = [
   "- Delegate to agents only to fill explicit evidence gaps.",
   "- Ask for structural evidence first, then quantitative support if needed.",
   "",
-  "Available AGENT tools:",
-  "- 'artifact-extractor-agent': recover code artifacts, boundaries, dependencies, and flow relations for the use-case.",
-  "- 'metrics-agent': recover quantitative indicators that support architecture inferences for the scoped elements.",
+  "Skills context is provided in a separate section.",
   "",
   "Tool selection guide:",
   "- Use 'artifact-extractor-agent' first for modules, components, interfaces, dependencies, and call-sequence relations.",
@@ -68,14 +66,47 @@ const PROMPT_TEMPLATE = [
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
+  private skillsPrompt: string;
 
-  constructor(llmService: LLMService<BaseMessage[], BaseMessage>) {
+  constructor(llmService: LLMService<BaseMessage[], BaseMessage>, skillsPrompt = "") {
     super();
     this.llmService = llmService;
+    this.skillsPrompt = skillsPrompt;
+  }
+
+  private buildSystemPrompt(state: AgentState): string {
+    const parts = [PROMPT_TEMPLATE, state.skillsPrompt ?? this.skillsPrompt].filter(Boolean);
+    if (state.blockedTools && state.blockedTools.length > 0) {
+      const blocked = state.blockedTools.map((b) => `- ${b.toolName} args=${b.args}`).join('\n');
+      parts.push(`Blocked tool calls (do NOT retry):\n${blocked}`);
+    }
+    return parts.join("\n\n");
+  }
+
+  private logPromptPreview(prompt: string): void {
+    const head = prompt.slice(0, 100);
+    const tail = prompt.slice(-100);
+    console.log(`[100 primeiros]\n${head}\n...\n[100 ultimos]\n${tail}`);
+  }
+
+  private extractSelectedSkillId(content: string): string | undefined {
+    const match = content.match(/SKILL_ID:\s*([A-Za-z0-9_-]+)/i);
+    return match?.[1];
+  }
+
+  private extractReasoning(content: string): string | null {
+    if (!content) return null;
+    const lines = String(content).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const cues = lines.filter((l) => /^(Reason|Thought|Plan|Steps?)[:\-]/i.test(l) || /\bbecause\b/i.test(l));
+    if (cues.length > 0) return cues.join(' ');
+    return content.replace(/\s+/g, ' ').slice(0, 300);
   }
 
   public async execute(state: AgentState): Promise<AgentState> {
     console.log("ENTERING LLM NODE...\n");
+
+    const systemPrompt = this.buildSystemPrompt(state);
+    this.logPromptPreview(systemPrompt);
 
     const currentIteration = state.iterationLevel ?? 0;
     const nextIteration = currentIteration + 1;
@@ -88,19 +119,31 @@ export class LLMCallerNode extends Node<AgentState> {
       }
 
       const response = await this.llmService.invoke([
-        new SystemMessage(PROMPT_TEMPLATE),
+        new SystemMessage(systemPrompt),
         ...state.messages,
       ]);
+
+      const respContent = typeof response.content === 'string' ? response.content : '';
+      const selectedSkillId = this.extractSelectedSkillId(respContent);
+      console.log('[llm] model response preview:\n' + (respContent.length > 1000 ? respContent.slice(0,1000) + '...' : respContent));
+      const reasoning = this.extractReasoning(respContent);
+      if (reasoning) console.log('[llm] extracted reasoning: ' + reasoning);
+      if (selectedSkillId) console.log('[llm] decision: select skill ' + selectedSkillId);
 
       return {
         ...state,
         iterationLevel: nextIteration,
         messages: [...state.messages, response],
+        selectedSkillId: selectedSkillId ?? state.selectedSkillId,
+        skillBodyLoaded:
+          selectedSkillId && selectedSkillId !== state.selectedSkillId
+            ? false
+            : state.skillBodyLoaded,
       };
     }
 
     const prompt = [
-      new SystemMessage(PROMPT_TEMPLATE),
+      new SystemMessage(systemPrompt),
       ...(state.messages ?? []),
       new HumanMessage(
         "Extract the high-level architecture only for the use-case under analysis and infer expected architecture rules to be validated downstream.",
@@ -109,10 +152,19 @@ export class LLMCallerNode extends Node<AgentState> {
 
     const response = await this.llmService.invoke(prompt);
 
+    const selectedSkillId = this.extractSelectedSkillId(
+      typeof response.content === "string" ? response.content : "",
+    );
+
     return {
       ...state,
       iterationLevel: nextIteration,
       messages: [...(state.messages ?? []), prompt.pop() as BaseMessage, response],
+      selectedSkillId: selectedSkillId ?? state.selectedSkillId,
+      skillBodyLoaded:
+        selectedSkillId && selectedSkillId !== state.selectedSkillId
+          ? false
+          : state.skillBodyLoaded,
     };
   }
 }

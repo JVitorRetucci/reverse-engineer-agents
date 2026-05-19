@@ -69,9 +69,49 @@ export class ListDirectoriesTool extends BasicTool<
       // path null/undefined => current directory (per schema description)
       const targetPath = path ?? ".";
       // Must run in PowerShell (on Windows, exec() defaults to cmd.exe where `ls` doesn't exist)
-      const { stdout } = await this.customToolExecutor(
+      const { stdout, stderr } = await this.customToolExecutor(
         `Get-ChildItem -Path "${targetPath}" -Force ${!!depth ? `-Depth ${depth} ` : ""}| Select-Object Name, Extension, PSIsContainer, DirectoryName | ConvertTo-Json`
       );
+
+      // Check if stderr contains errors (PowerShell may write errors but not throw)
+      if (stderr && stderr.trim()) {
+        const errorMessage = `PowerShell error while listing directory "${targetPath}": ${stderr}`;
+        console.error(`[ListDirectoriesTool] ${errorMessage}`);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: false,
+                errorType: "DIRECTORY_LISTING_ERROR",
+                path: targetPath,
+                reason: stderr,
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Check if stdout is empty (path may not exist or no items)
+      if (!stdout || stdout.trim() === "") {
+        const infoMessage = `Directory "${targetPath}" is empty or does not exist.`;
+        console.warn(`[ListDirectoriesTool] ${infoMessage}`);
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: false,
+                errorType: "DIRECTORY_NOT_FOUND_OR_EMPTY",
+                path: targetPath,
+                reason: "Directory does not exist, is not accessible, or is empty.",
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
 
       // MCP Tool result format
       return {
@@ -84,13 +124,18 @@ export class ListDirectoriesTool extends BasicTool<
       };
     } catch (error) {
       const formattedErrorMessage = `Error while getting project static analysis: \n${error}`;
+      console.error(`[ListDirectoriesTool] ${formattedErrorMessage}`);
 
       // MCP Tool result format
       return {
         content: [
           {
             type: "text",
-            text: formattedErrorMessage,
+            text: JSON.stringify({
+              success: false,
+              errorType: "DIRECTORY_LISTING_EXECUTION_ERROR",
+              reason: String(error),
+            }),
           },
         ],
         isError: true,

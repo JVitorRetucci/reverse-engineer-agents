@@ -14,7 +14,9 @@ import { z } from "zod";
 import { ArchitectureContractExtractorAgent } from "./agent.js";
 import { AgentsCallerNode } from "@agents/architectureContractExtractor/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/architectureContractExtractor/nodes/LLMCallerNode.js";
-import { ToolsNode } from "@agents/architectureContractExtractor/nodes/ToolsNode.js";
+import { SkillRegistry } from "@agents/common/skills/SkillRegistry.js";
+import { SkillsContextNode } from "@agents/common/nodes/SkillsContextNode.js";
+import { SkillBodyLoaderNode } from "@agents/common/nodes/SkillBodyLoaderNode.js";
 
 export class ArchitectureContractExtractorAgentExecutor
   implements AgentExecutor
@@ -82,19 +84,28 @@ export class ArchitectureContractExtractorAgentExecutor
       tools: agentTools,
     });
 
+    const skillRegistry = new SkillRegistry();
+    await skillRegistry.loadFromDir(undefined, { agentName: "architectureContractExtractor" });
+    const skillIds = [
+      "task-decomposer",
+      "pec-selector",
+      "result-merger",
+      ...skillRegistry.getAgentSkillIds("architectureContractExtractor"),
+    ];
+    const skillsPrompt = skillRegistry.getPromptForSkills(skillIds);
+
     const llmNode = new LLMCallerNode(llmService);
-    const toolsNode = new ToolsNode({
-      tools: [],
-      agentName: "architecture-contract-extractor-agent",
-    });
+    const skillsContextNode = new SkillsContextNode(skillsPrompt);
+    const skillBodyLoaderNode = new SkillBodyLoaderNode(skillRegistry);
     const agentsCallerNode = new AgentsCallerNode({
       agents: agentsConfig,
     });
 
     const agentCompiler = new ArchitectureContractExtractorAgent({
       llmCallerNode: llmNode,
-      toolsNode: toolsNode,
       agentsCallerNode: agentsCallerNode,
+      skillsContextNode: skillsContextNode,
+      skillBodyLoaderNode: skillBodyLoaderNode,
     });
 
     this.agent =

@@ -5,16 +5,16 @@ import {
   RequestContext,
 } from "@a2a-js/sdk/server";
 import { DefaultLLMServiceFactory } from "@agents/common/llmServices/factories/DefaultLLMServiceFactory.js";
-import { MCPClientsAdapter } from "@agents/common/mcpClients/mcpAdapter.js";
 import { AgentState } from "@agents/common/states/AgentState.js";
 import { MainAgent } from "@agents/main/agent.js";
 import { AgentsCallerNode } from "@agents/main/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/main/nodes/LLMCallerNode.js";
-import { ToolsNode } from "@agents/main/nodes/ToolsNode.js";
+import { SkillRegistry } from "@agents/common/skills/SkillRegistry.js";
+import { SkillsContextNode } from "@agents/common/nodes/SkillsContextNode.js";
+import { SkillBodyLoaderNode } from "@agents/common/nodes/SkillBodyLoaderNode.js";
 import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { CompiledStateGraph } from "@langchain/langgraph";
-import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 
@@ -24,23 +24,8 @@ export class MainAgentExecutor implements AgentExecutor {
     AgentState,
     string | "__start__"
   > = undefined;
-  private mcpClientAdapter: MultiServerMCPClient;
 
   constructor() {
-    this.mcpClientAdapter = MCPClientsAdapter.getMultipleClientsConnection({
-      mcpServers: {
-        "metrics-extractor": {
-          command: "npm",
-          args: [
-            "run",
-            "--prefix",
-            process.env.METRICS_MCP_PATH ?? "",
-            "mcp-server/metrics-extractor",
-          ],
-        },
-      },
-    });
-
     this.initializeAgent();
   }
 
@@ -87,8 +72,6 @@ export class MainAgentExecutor implements AgentExecutor {
   }
 
   private async initializeAgent(): Promise<void> {
-    const allMcpTools = await this.mcpClientAdapter.getTools();
-
     const agentsConfig: Record<string, string> = {
       "metrics-agent": "http://localhost:4201/.well-known/agent-card.json",
       "artifact-extractor-agent":
@@ -110,20 +93,28 @@ export class MainAgentExecutor implements AgentExecutor {
       tools: allTools,
     });
 
-    const llmNode = new LLMCallerNode(llmService);
-    const toolsNode = new ToolsNode({
-      tools: allMcpTools,
-      agentName: "main-agent",
-    });
+    const skillRegistry = new SkillRegistry();
+    await skillRegistry.loadFromDir(undefined, { agentName: "main" });
+    const skillIds = [
+      "task-router",
+      "result-aggregator",
+      "error-handler",
+      ...skillRegistry.getAgentSkillIds("main"),
+    ];
+    const skillsPrompt = skillRegistry.getPromptForSkills(skillIds);
 
+    const llmNode = new LLMCallerNode(llmService);
+    const skillsContextNode = new SkillsContextNode(skillsPrompt);
+    const skillBodyLoaderNode = new SkillBodyLoaderNode(skillRegistry);
     const agentsCallerNode = new AgentsCallerNode({
       agents: agentsConfig,
     });
 
     const agentCompiler = new MainAgent({
       llmCallerNode: llmNode,
-      toolsNode: toolsNode,
       agentsCallerNode: agentsCallerNode,
+      skillsContextNode: skillsContextNode,
+      skillBodyLoaderNode: skillBodyLoaderNode,
     });
 
     this.agent =

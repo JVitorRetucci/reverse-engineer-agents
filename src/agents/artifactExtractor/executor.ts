@@ -7,6 +7,9 @@ import {
 import { AgentsCallerNode } from "@agents/artifactExtractor/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/artifactExtractor/nodes/LLMCallerNode.js";
 import { ToolsNode } from "@agents/artifactExtractor/nodes/ToolsNode.js";
+import { SkillRegistry } from "@agents/common/skills/SkillRegistry.js";
+import { SkillsContextNode } from "@agents/common/nodes/SkillsContextNode.js";
+import { SkillBodyLoaderNode } from "@agents/common/nodes/SkillBodyLoaderNode.js";
 import { DefaultLLMServiceFactory } from "@agents/common/llmServices/factories/DefaultLLMServiceFactory.js";
 import { MCPClientsAdapter } from "@agents/common/mcpClients/mcpAdapter.js";
 import { AgentState } from "@agents/common/states/AgentState.js";
@@ -101,7 +104,17 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
       tools: allTools,
     });
 
+    const skillRegistry = new SkillRegistry();
+    await skillRegistry.loadFromDir(undefined, { agentName: "artifactExtractor" });
+    const skillIds = [
+      "artifact-extractor",
+      ...skillRegistry.getAgentSkillIds("artifactExtractor"),
+    ];
+    const skillsPrompt = skillRegistry.getPromptForSkills(skillIds);
+
     const llmNode = new LLMCallerNode(llmService);
+    const skillsContextNode = new SkillsContextNode(skillsPrompt);
+    const skillBodyLoaderNode = new SkillBodyLoaderNode(skillRegistry);
     const toolsNode = new ToolsNode({
       tools: allMcpTools,
       agentName: "artifact-extractor-agent",
@@ -114,6 +127,8 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
       llmCallerNode: llmNode,
       toolsNode: toolsNode,
       agentsCallerNode: agentsCallerNode,
+      skillsContextNode: skillsContextNode,
+      skillBodyLoaderNode: skillBodyLoaderNode,
     });
 
     this.agent =

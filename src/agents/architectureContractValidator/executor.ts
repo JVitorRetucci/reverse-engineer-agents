@@ -14,7 +14,9 @@ import { z } from "zod";
 import { ArchitectureContractValidatorAgent } from "./agent.js";
 import { AgentsCallerNode } from "@agents/architectureContractValidator/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/architectureContractValidator/nodes/LLMCallerNode.js";
-import { ToolsNode } from "@agents/architectureContractValidator/nodes/ToolsNode.js";
+import { SkillRegistry } from "@agents/common/skills/SkillRegistry.js";
+import { SkillsContextNode } from "@agents/common/nodes/SkillsContextNode.js";
+import { SkillBodyLoaderNode } from "@agents/common/nodes/SkillBodyLoaderNode.js";
 
 export class ArchitectureContractValidatorAgentExecutor
   implements AgentExecutor
@@ -82,19 +84,27 @@ export class ArchitectureContractValidatorAgentExecutor
       tools: agentTools,
     });
 
+    const skillRegistry = new SkillRegistry();
+    await skillRegistry.loadFromDir(undefined, { agentName: "architectureContractValidator" });
+    const skillIds = [
+      "pec-selector",
+      "result-merger",
+      ...skillRegistry.getAgentSkillIds("architectureContractValidator"),
+    ];
+    const skillsPrompt = skillRegistry.getPromptForSkills(skillIds);
+
     const llmNode = new LLMCallerNode(llmService);
-    const toolsNode = new ToolsNode({
-      tools: [],
-      agentName: "architecture-contract-validator-agent",
-    });
+    const skillsContextNode = new SkillsContextNode(skillsPrompt);
+    const skillBodyLoaderNode = new SkillBodyLoaderNode(skillRegistry);
     const agentsCallerNode = new AgentsCallerNode({
       agents: agentsConfig,
     });
 
     const agentCompiler = new ArchitectureContractValidatorAgent({
       llmCallerNode: llmNode,
-      toolsNode: toolsNode,
       agentsCallerNode: agentsCallerNode,
+      skillsContextNode: skillsContextNode,
+      skillBodyLoaderNode: skillBodyLoaderNode,
     });
 
     this.agent =

@@ -13,44 +13,53 @@ import {
 } from "@root/agents/common/states/AgentState.js";
 import { AgentsCallerNode } from "@agents/architectureContractValidator/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/architectureContractValidator/nodes/LLMCallerNode.js";
-import { ToolsNode } from "@agents/architectureContractValidator/nodes/ToolsNode.js";
+import { SkillsContextNode } from "@agents/common/nodes/SkillsContextNode.js";
+import { SkillBodyLoaderNode } from "@agents/common/nodes/SkillBodyLoaderNode.js";
 
 interface IArchitectureContractValidatorAgentParams {
   llmCallerNode: LLMCallerNode;
-  toolsNode: ToolsNode;
   agentsCallerNode: AgentsCallerNode;
+  skillsContextNode: SkillsContextNode;
+  skillBodyLoaderNode: SkillBodyLoaderNode;
 }
 
 export class ArchitectureContractValidatorAgent extends BaseAgent<AgentState> {
   private readonly NODE_NAMES: Record<string, string> = {
+    skills_context_node: "SKILLS_CONTEXT_NODE",
+    skill_body_node: "SKILL_BODY_NODE",
     llm_caller_node: "LLM_CALLER_NODE",
-    mcp_adapter_node: "MCP_ADAPTER_NODE",
     agents_caller_node: "AGENTS_CALLER_NODE",
   };
 
   private agentsCallerNode: AgentsCallerNode;
-  private toolsNode: ToolsNode;
+  private skillsContextNode: SkillsContextNode;
+  private skillBodyLoaderNode: SkillBodyLoaderNode;
 
   constructor({
     llmCallerNode,
-    toolsNode,
     agentsCallerNode,
+    skillsContextNode,
+    skillBodyLoaderNode,
   }: IArchitectureContractValidatorAgentParams) {
     super();
 
     this.colorCode = "\x1b[36m";
 
     this.agentsCallerNode = agentsCallerNode;
-    this.toolsNode = toolsNode;
-
+    this.skillsContextNode = skillsContextNode;
+    this.skillBodyLoaderNode = skillBodyLoaderNode;
     this.setNodes({
+      [this.NODE_NAMES.skills_context_node]: (state: AgentState) => {
+        this.printDebugMessage("entering **skillsContextNode**...");
+        return skillsContextNode.execute(state);
+      },
+      [this.NODE_NAMES.skill_body_node]: (state: AgentState) => {
+        this.printDebugMessage("entering **skillBodyLoaderNode**...");
+        return skillBodyLoaderNode.execute(state);
+      },
       [this.NODE_NAMES.llm_caller_node]: (state: AgentState) => {
         this.printDebugMessage("entering **llmCallerNode**...");
         return llmCallerNode.execute(state);
-      },
-      [this.NODE_NAMES.mcp_adapter_node]: (state: AgentState) => {
-        this.printDebugMessage("entering **toolsNode**...");
-        return toolsNode.execute(state);
       },
       [this.NODE_NAMES.agents_caller_node]: (state: AgentState) => {
         this.printDebugMessage("entering **agentsCallerNode**...");
@@ -64,19 +73,30 @@ export class ArchitectureContractValidatorAgent extends BaseAgent<AgentState> {
   > {
     const agentGraph = new StateGraph(AgentStateSchema)
       .addNode(
-        this.NODE_NAMES.llm_caller_node,
-        this.nodes[this.NODE_NAMES.llm_caller_node],
+        this.NODE_NAMES.skills_context_node,
+        this.nodes[this.NODE_NAMES.skills_context_node],
       )
       .addNode(
-        this.NODE_NAMES.mcp_adapter_node,
-        this.nodes[this.NODE_NAMES.mcp_adapter_node],
+        this.NODE_NAMES.skill_body_node,
+        this.nodes[this.NODE_NAMES.skill_body_node],
+      )
+      .addNode(
+        this.NODE_NAMES.llm_caller_node,
+        this.nodes[this.NODE_NAMES.llm_caller_node],
       )
       .addNode(
         this.NODE_NAMES.agents_caller_node,
         this.nodes[this.NODE_NAMES.agents_caller_node],
       )
-      .addEdge(START, this.NODE_NAMES.llm_caller_node)
-      .addEdge(this.NODE_NAMES.mcp_adapter_node, this.NODE_NAMES.llm_caller_node)
+      .addEdge(START, this.NODE_NAMES.skills_context_node)
+      .addEdge(
+        this.NODE_NAMES.skills_context_node,
+        this.NODE_NAMES.llm_caller_node,
+      )
+      .addEdge(
+        this.NODE_NAMES.skill_body_node,
+        this.NODE_NAMES.llm_caller_node,
+      )
       .addEdge(
         this.NODE_NAMES.agents_caller_node,
         this.NODE_NAMES.llm_caller_node,
@@ -86,7 +106,7 @@ export class ArchitectureContractValidatorAgent extends BaseAgent<AgentState> {
         path: this.pathRouter.bind(this),
         pathMap: {
           [END]: END,
-          [this.NODE_NAMES.mcp_adapter_node]: this.NODE_NAMES.mcp_adapter_node,
+          [this.NODE_NAMES.skill_body_node]: this.NODE_NAMES.skill_body_node,
           [this.NODE_NAMES.agents_caller_node]: this.NODE_NAMES.agents_caller_node,
         },
       });
@@ -116,6 +136,10 @@ export class ArchitectureContractValidatorAgent extends BaseAgent<AgentState> {
       return END;
     }
 
+    if (state.selectedSkillId && !state.skillBodyLoaded) {
+      return this.NODE_NAMES.skill_body_node;
+    }
+
     const toolCalls = lastMessage.tool_calls;
     if (!toolCalls || toolCalls.length === 0) {
       return END;
@@ -129,6 +153,6 @@ export class ArchitectureContractValidatorAgent extends BaseAgent<AgentState> {
       return this.NODE_NAMES.agents_caller_node;
     }
 
-    return this.NODE_NAMES.mcp_adapter_node;
+    return END;
   }
 }

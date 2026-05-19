@@ -82,10 +82,20 @@ export class TemplateAgentExecutor implements AgentExecutor {
   private async loadAgentDependencies() {
     // TODO: Implementar carregamento de dependências
     // Retornar objeto com suas dependências customizadas
+    // Exemplo com skills:
+    // const skillRegistry = new SkillRegistry();
+    // await skillRegistry.loadFromDir(undefined, { agentName: "templateAgent" });
+    // const skillIds = [
+    //   "task-router",
+    //   "result-aggregator",
+    //   ...skillRegistry.getAgentSkillIds("templateAgent"),
+    // ];
+    // const skillsPrompt = skillRegistry.getPromptForSkills(skillIds);
     return {
       llmService: null,
       toolsNode: null,
       agentsCallerNode: null,
+      skillsPrompt: "",
     };
   }
 
@@ -100,7 +110,7 @@ export class TemplateAgentExecutor implements AgentExecutor {
     // TODO: Compilar o grafo do agente usando LangGraph
     // Exemplo:
     // const agent = new TemplateAgent({
-    //   llmCallerNode: deps.llmService,
+    //   llmCallerNode: new LLMCallerNode(deps.llmService, deps.skillsPrompt),
     //   toolsNode: deps.toolsNode,
     //   agentsCallerNode: deps.agentsCallerNode,
     // });
