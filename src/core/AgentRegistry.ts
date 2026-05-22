@@ -64,8 +64,28 @@ export class AgentRegistry {
       executor
     );
 
+    const allowedOrigin = process.env.FRONTEND_ORIGIN ?? "http://localhost:3000";
     const appBuilder = new A2AExpressApp(requestHandler);
-    const expressApp = appBuilder.setupRoutes(express());
+    const expressApp = express();
+
+    expressApp.use((req, res, next) => {
+      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+      res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization"
+      );
+
+      if (req.method === "OPTIONS") {
+        res.sendStatus(204);
+        return;
+      }
+
+      next();
+    });
+
+    appBuilder.setupRoutes(expressApp);
 
     const server = expressApp.listen(agentConfig.port, () => {
       console.log(
