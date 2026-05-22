@@ -17,6 +17,7 @@ const PROMPT_TEMPLATE = [
   "",
   "Mandatory behavior:",
   "- Ignore library folders in projects (for example: node_modules in Node-like projects).",
+  "- Ignore version control folders and files (for example: .git folder and other version controls systems).",
   "- Ground results in extracted evidence, not speculation.",
   "- Your responsibility is to decide which tools to call with which parameters and return raw tool outputs only.",
   "- Do not generate semantic text or LLM-derived content in the final response; only return what tools extract.",
