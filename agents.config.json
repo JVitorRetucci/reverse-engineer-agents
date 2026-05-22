@@ -94,7 +94,7 @@
       "skill": {
         "id": "artifact_extraction",
         "name": "Uses powershell commands to navigate through folders and extract artifacts related to the request",
-        "description": "Help with the extraction of content from codebase related to the user's request",
+        "description": "Help with the extraction of content from codebase related to the user's request. It does reason about the content extracted",
         "tags": [
           "artifact extraction",
           "codebase exploration",
