@@ -1,5 +1,5 @@
 {
-  "default_llm_service": "google",
+  "default_llm_service": "ollama",
   "agents": [
     {
       "id": "main",

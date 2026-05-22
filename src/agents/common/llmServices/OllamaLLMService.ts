@@ -21,7 +21,10 @@ export class OllamaLLMService extends LLMService<
     super(params);
 
     const baseModel = new ChatOllama({
-      model: params?.model ?? "glm-5:cloud",
+      // model: params?.model ?? "qwen3.5:cloud",
+      model: params?.model ?? "gpt-oss:120b-cloud",
+      // model: params?.model ?? "gpt-oss:20b-cloud",
+      // model: params?.model ?? "gemma4:31b-cloud",
       temperature: params?.temperature,
       
     });
