@@ -22,7 +22,6 @@ const ListDirectoriesToolSchema = z.object({
     ),
   depth: z
     .number()
-    .nullable()
     .optional()
     .describe(
       "Search depth to prevent recursive calls when analyzing directories. Warning: Use with caution since it can result in long responses.",
@@ -70,7 +69,7 @@ export class ListDirectoriesTool extends BasicTool<
       const targetPath = path ?? ".";
       // Must run in PowerShell (on Windows, exec() defaults to cmd.exe where `ls` doesn't exist)
       const { stdout, stderr } = await this.customToolExecutor(
-        `Get-ChildItem -Path "${targetPath}" -Force ${!!depth ? `-Depth ${depth} ` : ""}| Select-Object Name, Extension, PSIsContainer, DirectoryName | ConvertTo-Json`
+        `Get-ChildItem -Path "${targetPath}" -Force ${this.insertDepth(depth)}| Select-Object Name, Extension, PSIsContainer | ConvertTo-Json`
       );
 
       // Check if stderr contains errors (PowerShell may write errors but not throw)
@@ -141,5 +140,9 @@ export class ListDirectoriesTool extends BasicTool<
         isError: true,
       };
     }
+  }
+
+  insertDepth(depth?: number) {
+    return !!depth ? `-Depth ${depth} ` : ""
   }
 }
