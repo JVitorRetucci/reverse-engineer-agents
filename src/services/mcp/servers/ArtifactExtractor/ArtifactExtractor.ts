@@ -4,11 +4,13 @@ import { Implementation } from "@modelcontextprotocol/sdk/types.js";
 import { DirectoryNavigationToolFactory, PowerShellDirectoryNavigationToolFactory } from "@services/mcp/toolFactories/DirectoryNavigationToolFactory.js";
 import { GetFileContentToolFactory } from "@services/mcp/toolFactories/GetFileContentToolFactory.js";
 import { ListDirectoriesToolFactory } from "@services/mcp/toolFactories/ListDirectoriesToolFactory.js";
+import { SearchInFileSystemToolFactory } from "@services/mcp/toolFactories/SearchInFileSystemToolFactory.js";
 
 interface IArtifactExtractorServerParams {
   listDirectoriesToolFactory: ListDirectoriesToolFactory;
   directoryNavigationToolFactory: DirectoryNavigationToolFactory;
   getFileContentToolFactory: GetFileContentToolFactory;
+  searchInFileSystemToolFactory: SearchInFileSystemToolFactory;
 }
 
 export const mcpServerConfig: {
@@ -28,12 +30,13 @@ export const mcpServerConfig: {
 };
 
 export class ArtifactExtractorServer extends McpServer {
-  constructor({ listDirectoriesToolFactory, directoryNavigationToolFactory, getFileContentToolFactory }: IArtifactExtractorServerParams) {
+  constructor({ listDirectoriesToolFactory, directoryNavigationToolFactory, getFileContentToolFactory, searchInFileSystemToolFactory }: IArtifactExtractorServerParams) {
     super(mcpServerConfig.serverInfo);
 
     const listDirectoriesTool = listDirectoriesToolFactory.createToolClass();
     const directoryNavigationTool = directoryNavigationToolFactory.createToolClass();
     const getFileContentTool = getFileContentToolFactory.createToolClass();
+    const searchInFileSystemTool = searchInFileSystemToolFactory.createToolClass();
 
     super.registerTool(
       listDirectoriesTool.name,
@@ -60,6 +63,15 @@ export class ArtifactExtractorServer extends McpServer {
         inputSchema: getFileContentTool.parametersSchema,
       },
       getFileContentTool.invoke.bind(getFileContentTool)
+    );
+
+    super.registerTool(
+      searchInFileSystemTool.name,
+      {
+        description: searchInFileSystemTool.description,
+        inputSchema: searchInFileSystemTool.parametersSchema,
+      },
+      searchInFileSystemTool.invoke.bind(searchInFileSystemTool)
     );
   }
 }
