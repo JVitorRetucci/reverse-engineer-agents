@@ -38,15 +38,16 @@ export class AgentsCallerNode extends Node<AgentState> {
     return this.agentClients.get(agentName) || null;
   }
 
-  private convertToolCallArgsToA2AMessage(args: any): MessageSendParams {
+  private convertToolCallArgsToA2AMessage(args: any, iterationLevel: number): MessageSendParams {
     const messageText = args.message || args.text || JSON.stringify(args);
 
     return {
       message: {
         messageId: uuidv4(),
-        role: "user",
+        role: "agent",
         parts: [{ kind: "text", text: messageText }],
         kind: "message",
+        metadata: { iterationLevel },
       },
     };
   }
@@ -89,6 +90,7 @@ export class AgentsCallerNode extends Node<AgentState> {
     if (!(lastMessage instanceof AIMessage)) return state;
 
     const toolResults: ToolMessage[] = [];
+    const iterationErrorResults: ToolMessage[] = [];
     const toolCalls = lastMessage.tool_calls;
 
     for (const toolCall of toolCalls ?? []) {
@@ -115,7 +117,8 @@ export class AgentsCallerNode extends Node<AgentState> {
 
       try {
         const sendParams = this.convertToolCallArgsToA2AMessage(
-          toolCall.args
+          toolCall.args,
+          state.iterationLevel ?? 0,
         );
 
         
@@ -140,7 +143,16 @@ export class AgentsCallerNode extends Node<AgentState> {
             response.result as Message,
             toolCall.id as string
           );
-          toolResults.push(toolMessage);
+          try {
+            const parsed = JSON.parse(toolMessage.content);
+            if (parsed && parsed.type === "iteration_error") {
+              iterationErrorResults.push(toolMessage);
+            } else {
+              toolResults.push(toolMessage);
+            }
+          } catch (e) {
+            toolResults.push(toolMessage);
+          }
         }
       } catch (error) {
         console.error(
@@ -159,11 +171,15 @@ export class AgentsCallerNode extends Node<AgentState> {
       }
     }
 
-    if (toolResults.length === 0) return state;
+    if (toolResults.length === 0 && iterationErrorResults.length === 0) return state;
 
     return {
       ...state,
-      messages: [...state.messages, ...toolResults],
+      messages: [
+        ...state.messages,
+        ...iterationErrorResults,
+        ...toolResults,
+      ],
     };
   }
 }

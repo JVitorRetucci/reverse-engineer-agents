@@ -134,12 +134,14 @@ export class MetricsAgentExecutor implements AgentExecutor {
 
     let result: AgentState;
     try {
+      const initialIteration =
+        requestContext.userMessage.role === "user"
+          ? 0
+          : ((requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
+
       result = (await this.agent.invoke(
         {
-          iterationLevel:
-            requestContext.userMessage.role === "user"
-              ? 0
-              : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
+          iterationLevel: initialIteration,
           messages: mappedMessages,
         },
         { recursionLimit: 100, runName: "Metrics Agent" },

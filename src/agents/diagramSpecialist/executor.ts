@@ -119,11 +119,13 @@ export class DiagramSpecialistAgentExecutor implements AgentExecutor {
 
     const mappedMessages = this.mapUserMessageToAgentMessages(requestContext);
 
+    const initialIteration =
+      requestContext.userMessage.role === "user"
+        ? 0
+        : ((requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
+
     const result = (await this.agent.invoke({
-      iterationLevel:
-        requestContext.userMessage.role === "user"
-          ? 0
-          : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
+      iterationLevel: initialIteration,
       messages: mappedMessages,
     }, { recursionLimit: 100, runName: "Diagram Specialist Agent" })) as AgentState;
 

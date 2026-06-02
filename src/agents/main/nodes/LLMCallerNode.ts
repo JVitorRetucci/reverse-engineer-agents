@@ -5,6 +5,7 @@ import {
   BaseMessage,
   HumanMessage,
   SystemMessage,
+  ToolMessage,
 } from "@langchain/core/messages";
 
 const PROMPT_TEMPLATE = [
@@ -52,13 +53,15 @@ const PROMPT_TEMPLATE = [
   "5) Consolidate outputs and return the final answer.",
   "",
   "Output contract:",
-  "- Return a concise final response that reflects delegated outputs faithfully.",
+  "- Return a concise final response, in plain text, that reflects delegated outputs faithfully.",
   "- If unresolved blocking errors remain, report limitations explicitly and objectively.",
   "",
   "Scope restriction:",
   "- You are a software engineering assistant.",
   "- Never answer questions from unrelated domains (for example: medicine, law, general trivia). Politely refuse and keep scope to software engineering.",
 ].join(" ");
+
+const MAX_ITERATIONS = parseInt(process.env.MAX_AGENT_ITERATIONS ?? "5", 10);
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
@@ -70,14 +73,39 @@ export class LLMCallerNode extends Node<AgentState> {
 
   public async execute(state: AgentState): Promise<AgentState> {
     console.log("ENTERING LLM NODE...\n");
+
+    const currentIteration = state.iterationLevel ?? 0;
+    if (currentIteration >= MAX_ITERATIONS) {
+      console.warn(
+        `Max iteration level (${MAX_ITERATIONS}) reached before LLM invocation. Ending execution.`,
+      );
+
+      const summaryText = JSON.stringify({
+        type: "iteration_error",
+        reason: `Max iterations (${MAX_ITERATIONS}) reached before LLM invocation.`,
+        iterationLevel: currentIteration,
+        messagesProcessed: state.messages?.length ?? 0,
+        note: "Por favor, adicione este resumo ao contexto do agente que chamou.",
+      });
+
+      const summaryMsg = new ToolMessage({ tool_call_id: "iteration_error", content: summaryText });
+
+      return { ...state, messages: [...(state.messages ?? []), summaryMsg] };
+    }
+
+    const nextIteration = currentIteration + 1;
+
     if (state.messages && state.messages.length > 0) {
-      if(process.env.DEBUG_MODE === "true")
-        console.log("...invoking model from LLMCallerNode");
+      if (process.env.DEBUG_MODE === "true") {
+        console.log(
+          `...invoking model from LLMCallerNode (iteration: ${nextIteration})`,
+        );
+      }
       const response = await this.llmService.invoke([new SystemMessage(PROMPT_TEMPLATE), ...state.messages]);
 
       const newState = {
         ...state,
-        iterationLevel: (state.iterationLevel ?? 0) + 1,
+        iterationLevel: nextIteration,
         messages: [...state.messages, response],
       };
 
@@ -97,6 +125,7 @@ export class LLMCallerNode extends Node<AgentState> {
 
     const newState = {
       ...state,
+      iterationLevel: nextIteration,
       messages: [
         ...(state.messages ?? []),
         prompt.pop() as BaseMessage,

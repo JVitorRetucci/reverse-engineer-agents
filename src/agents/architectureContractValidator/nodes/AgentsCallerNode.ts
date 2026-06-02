@@ -37,22 +37,23 @@ export class AgentsCallerNode extends Node<AgentState> {
     return this.agentClients.get(agentName) || null;
   }
 
-  private convertToolCallArgsToA2AMessage(args: any): MessageSendParams {
+  private convertToolCallArgsToA2AMessage(args: any, iterationLevel: number): MessageSendParams {
     const messageText = args.message || args.text || JSON.stringify(args);
 
     return {
       message: {
         messageId: uuidv4(),
-        role: "user",
+        role: "agent",
         parts: [{ kind: "text", text: messageText }],
         kind: "message",
+        metadata: { iterationLevel },
       },
     };
   }
 
   private convertA2AMessageToToolMessage(
     a2aMessage: Message,
-    toolCallId: string,
+    toolCallId: any,
   ): ToolMessage {
     let content = "";
 
@@ -72,7 +73,7 @@ export class AgentsCallerNode extends Node<AgentState> {
     }
 
     return new ToolMessage({
-      tool_call_id: toolCallId,
+      tool_call_id: String(toolCallId),
       content: content,
     });
   }
@@ -89,6 +90,7 @@ export class AgentsCallerNode extends Node<AgentState> {
     if (!(lastMessage instanceof AIMessage)) return state;
 
     const toolResults: ToolMessage[] = [];
+    const iterationErrorResults: ToolMessage[] = [];
     const toolCalls = lastMessage.tool_calls;
 
     for (const toolCall of toolCalls ?? []) {
@@ -100,7 +102,7 @@ export class AgentsCallerNode extends Node<AgentState> {
       if (!agentClient) {
         toolResults.push(
           new ToolMessage({
-            tool_call_id: toolCall.id as string,
+            tool_call_id: uuidv4(),
             content: JSON.stringify({
               error: `Could not connect to '${toolCall.name}' agent. Check if the agent is available and whether its URL is correct at the agent's card.`,
             }),
@@ -110,43 +112,59 @@ export class AgentsCallerNode extends Node<AgentState> {
       }
 
       try {
-        const sendParams = this.convertToolCallArgsToA2AMessage(toolCall.args);
+        const sendParams = this.convertToolCallArgsToA2AMessage(
+          toolCall.args,
+          state.iterationLevel ?? 0,
+        );
         const response = await agentClient.sendMessage(sendParams);
 
         if ("error" in response) {
           toolResults.push(
             new ToolMessage({
-              tool_call_id: toolCall.id as string,
+              tool_call_id: uuidv4(),
               content: JSON.stringify({
                 error: response.error.message,
               }),
             }),
           );
         } else {
-          const toolMessage = this.convertA2AMessageToToolMessage(
+            const toolMessage = this.convertA2AMessageToToolMessage(
             response.result as Message,
-            toolCall.id as string,
+            uuidv4(),
           );
 
-          toolResults.push(toolMessage);
+          try {
+            const parsed = JSON.parse(toolMessage.content);
+            if (parsed && parsed.type === "iteration_error") {
+              iterationErrorResults.push(toolMessage);
+            } else {
+              toolResults.push(toolMessage);
+            }
+          } catch (e) {
+            toolResults.push(toolMessage);
+          }
         }
       } catch (error) {
-        toolResults.push(
-          new ToolMessage({
-            tool_call_id: toolCall.id as string,
-            content: JSON.stringify({
-              error: error instanceof Error ? error.message : String(error),
+          toolResults.push(
+            new ToolMessage({
+              tool_call_id: uuidv4(),
+              content: JSON.stringify({
+                error: error instanceof Error ? error.message : String(error),
+              }),
             }),
-          }),
-        );
+          );
       }
     }
 
-    if (toolResults.length === 0) return state;
+    if (toolResults.length === 0 && iterationErrorResults.length === 0) return state;
 
     return {
       ...state,
-      messages: [...state.messages, ...toolResults],
+      messages: [
+        ...state.messages,
+        ...iterationErrorResults,
+        ...toolResults,
+      ],
     };
   }
 }

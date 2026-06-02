@@ -5,6 +5,7 @@ import {
   BaseMessage,
   HumanMessage,
   SystemMessage,
+  ToolMessage,
 } from "@langchain/core/messages";
 
 const PROMPT_TEMPLATE = [
@@ -21,10 +22,23 @@ const PROMPT_TEMPLATE = [
   "- Ground results in extracted evidence, not speculation.",
   "- Your responsibility is to decide which tools to call with which parameters and return raw tool outputs only.",
   "- Do not generate semantic text or LLM-derived content in the final response; only return what tools extract.",
+  "- Always prefer an absolute path when referencing any file or directory.",
+  "- If only a partial or relative path is available, first resolve or discover the absolute path before continuing with the requested extraction.",
+  "- Never access a parent directory or sibling directory outside the root directory provided by the caller.",
+  "- If no root directory is provided in the request or available context, stop and ask the caller to provide one before using file-system tools.",
   "",
   "Tool usage policy:",
   "- Use available tools to execute extraction work.",
-  "- Prefer retries with better inputs when the first attempt is insufficient.",
+  "- Treat path existence as untrusted until it is verified by the tools.",
+  "- When the request mentions a file, folder, module, or symbol and the exact path is not already confirmed, first search for candidates with PowerShell_Search_In_File_System instead of guessing a path.",
+  "- Use PowerShell_Directory_Listing to confirm the contents of the nearest known directory before reading files from it.",
+  "- Use PowerShell_Directory_Navigation to normalize relative paths and move step-by-step from a confirmed location to the next target.",
+  "- Keep all search, listing, and navigation operations confined to the caller-provided root directory tree.",
+  "- Do not navigate upward out of the root directory or branch into adjacent sibling trees.",
+  "- Use PowerShell_Get_File_Content only after the path has been confirmed by search, listing, or navigation.",
+  "- Prefer the smallest possible search scope and bounded depth before broad recursive scans.",
+  "- Prefer retries with corrected inputs when the first attempt is insufficient, but do not repeat the same failing path call unchanged.",
+  "- If a path fails, re-anchor from the last confirmed directory, narrow or widen the candidate set, and try a different tool-based strategy before giving up.",
   "",
   "Handling errors from MCP tools:",
   "- When an MCP tool returns an error payload (for example with fields like 'success: false', 'errorType', 'toolName', 'agentName' or similar), you MUST try to understand the cause and recover by adjusting paths, parameters, or extraction strategy before giving up.",
@@ -33,10 +47,11 @@ const PROMPT_TEMPLATE = [
   "",
   "Reasoning process:",
   "1) Parse extraction scope from request.",
-  "2) Identify candidate paths/entities.",
-  "3) Run tools to extract artifacts and relationships.",
-  "4) Recover from errors with corrected strategy when possible.",
-  "5) Return consolidated extraction results.",
+  "2) Identify candidate paths/entities and verify them with search or directory listing before any file read.",
+  "3) Normalize the active location with directory navigation when the target is relative or nested.",
+  "4) Run tools to extract artifacts and relationships only after existence is confirmed.",
+  "5) Recover from errors with a different validated strategy when possible.",
+  "6) Return consolidated extraction results.",
   "",
   "Output contract:",
   "- Return extracted artifacts and relationships requested by caller.",
@@ -45,6 +60,8 @@ const PROMPT_TEMPLATE = [
   "Scope restriction:",
   "- Only handle code artifact extraction and relationship mapping tasks.",
 ].join(" ");
+
+const MAX_ITERATIONS = parseInt(process.env.MAX_AGENT_ITERATIONS ?? "5", 10);
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
@@ -60,6 +77,24 @@ export class LLMCallerNode extends Node<AgentState> {
     
     const currentIteration = state.iterationLevel ?? 0;
     const nextIteration = currentIteration + 1;
+
+    if (currentIteration >= MAX_ITERATIONS) {
+      console.warn(
+        `Max iteration level (${MAX_ITERATIONS}) reached before LLM invocation. Ending execution.`,
+      );
+
+      const summaryText = JSON.stringify({
+        type: "iteration_error",
+        reason: `Max iterations (${MAX_ITERATIONS}) reached before LLM invocation.`,
+        iterationLevel: currentIteration,
+        messagesProcessed: state.messages?.length ?? 0,
+        note: "Por favor, adicione este resumo ao contexto do agente que chamou.",
+      });
+
+      const summaryMsg = new ToolMessage({ tool_call_id: "iteration_error", content: summaryText });
+
+      return { ...state, messages: [...(state.messages ?? []), summaryMsg] };
+    }
     
     if (state.messages && state.messages.length > 0) {
       if(process.env.DEBUG_MODE === "true")

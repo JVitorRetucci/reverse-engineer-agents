@@ -5,6 +5,7 @@ import {
   BaseMessage,
   HumanMessage,
   SystemMessage,
+  ToolMessage,
 } from "@langchain/core/messages";
 
 const PROMPT_TEMPLATE = [
@@ -94,6 +95,8 @@ const PROMPT_TEMPLATE = [
   "- If asked about unrelated topics, politely refuse and redirect to architecture-contract validation scope.",
 ].join(" ");
 
+const MAX_ITERATIONS = parseInt(process.env.MAX_AGENT_ITERATIONS ?? "5", 10);
+
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
 
@@ -107,6 +110,24 @@ export class LLMCallerNode extends Node<AgentState> {
 
     const currentIteration = state.iterationLevel ?? 0;
     const nextIteration = currentIteration + 1;
+
+      if (currentIteration >= MAX_ITERATIONS) {
+        console.warn(
+          `Max iteration level (${MAX_ITERATIONS}) reached before LLM invocation. Ending execution.`,
+        );
+
+        const summaryText = JSON.stringify({
+          type: "iteration_error",
+          reason: `Max iterations (${MAX_ITERATIONS}) reached before LLM invocation.`,
+          iterationLevel: currentIteration,
+          messagesProcessed: state.messages?.length ?? 0,
+          note: "Por favor, adicione este resumo ao contexto do agente que chamou.",
+        });
+
+        const summaryMsg = new ToolMessage({ tool_call_id: "iteration_error", content: summaryText });
+
+        return { ...state, messages: [...(state.messages ?? []), summaryMsg] };
+      }
 
     if (state.messages && state.messages.length > 0) {
       if (process.env.DEBUG_MODE === "true") {
