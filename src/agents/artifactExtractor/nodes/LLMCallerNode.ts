@@ -7,6 +7,7 @@ import {
   SystemMessage,
   ToolMessage,
 } from "@langchain/core/messages";
+import { buildToolErrorLimitMessage } from "@agents/common/utils/toolErrorLimit.js";
 
 const PROMPT_TEMPLATE = [
   "You are an assistant specialized in extracting artifacts and relationships between entities in code.",
@@ -14,6 +15,7 @@ const PROMPT_TEMPLATE = [
   "",
   "Primary objective:",
   "- Respond to requested extraction tasks with the content of the requested artifacts.",
+  "- In case of unresolved errors, return a plain text summarized report to the invoker.",
   "- Provide concrete artifact and relationship evidence from code.",
   "",
   "Mandatory behavior:",
@@ -21,7 +23,7 @@ const PROMPT_TEMPLATE = [
   "- Ignore version control folders and files (for example: .git folder and other version controls systems).",
   "- Ground results in extracted evidence, not speculation.",
   "- Your responsibility is to decide which tools to call with which parameters and return raw tool outputs only.",
-  "- Do not generate semantic text or LLM-derived content in the final response; only return what tools extract.",
+  "- Do not generate semantic text or LLM-derived content in the final response, unless its an error report; only return what tools extract.",
   "- Always prefer an absolute path when referencing any file or directory.",
   "- If only a partial or relative path is available, first resolve or discover the absolute path before continuing with the requested extraction.",
   "- Never access a parent directory or sibling directory outside the root directory provided by the caller.",
@@ -73,8 +75,7 @@ export class LLMCallerNode extends Node<AgentState> {
 
   public async execute(state: AgentState): Promise<AgentState> {
     console.log("ENTERING LLM NODE...\n");
-    
-    
+
     const currentIteration = state.iterationLevel ?? 0;
     const nextIteration = currentIteration + 1;
 
@@ -95,11 +96,24 @@ export class LLMCallerNode extends Node<AgentState> {
 
       return { ...state, messages: [...(state.messages ?? []), summaryMsg] };
     }
-    
+
+    const toolErrorLimitMessage = buildToolErrorLimitMessage(state.messages);
+
+    if (toolErrorLimitMessage) {
+      return { ...state, messages: [...state.messages, toolErrorLimitMessage] };
+    }
+
     if (state.messages && state.messages.length > 0) {
-      if(process.env.DEBUG_MODE === "true")
-        console.log(`...invoking model from LLMCallerNode (iteration: ${nextIteration})`);
-      const response = await this.llmService.invoke([new SystemMessage(PROMPT_TEMPLATE), ...state.messages]);
+      if (process.env.DEBUG_MODE === "true") {
+        console.log(
+          `...invoking model from LLMCallerNode (iteration: ${nextIteration})`,
+        );
+      }
+
+      const response = await this.llmService.invoke([
+        new SystemMessage(PROMPT_TEMPLATE),
+        ...state.messages,
+      ]);
 
       const newState = {
         ...state,

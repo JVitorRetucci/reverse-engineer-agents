@@ -7,6 +7,7 @@ import {
   SystemMessage,
   ToolMessage,
 } from "@langchain/core/messages";
+import { buildToolErrorLimitMessage } from "@agents/common/utils/toolErrorLimit.js";
 
 const PROMPT_TEMPLATE = [
   "You are the MainAgent, an orchestrator for a multi-agent, tool-using software engineering system.",
@@ -102,6 +103,12 @@ export class LLMCallerNode extends Node<AgentState> {
         );
       }
       const response = await this.llmService.invoke([new SystemMessage(PROMPT_TEMPLATE), ...state.messages]);
+
+            const toolErrorLimitMessage = buildToolErrorLimitMessage(state.messages);
+
+            if (toolErrorLimitMessage) {
+              return { ...state, messages: [...state.messages, toolErrorLimitMessage] };
+            }
 
       const newState = {
         ...state,

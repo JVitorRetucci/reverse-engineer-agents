@@ -7,6 +7,7 @@ import {
   SystemMessage,
   ToolMessage,
 } from "@langchain/core/messages";
+import { buildToolErrorLimitMessage } from "@agents/common/utils/toolErrorLimit.js";
 
 const PROMPT_TEMPLATE = [
   "You are an Intermediate agent for architecture-contract extraction on a specific use-case.",
@@ -99,6 +100,12 @@ export class LLMCallerNode extends Node<AgentState> {
       const summaryMsg = new ToolMessage({ tool_call_id: "iteration_error", content: summaryText });
 
       return { ...state, messages: [...(state.messages ?? []), summaryMsg] };
+    }
+
+    const toolErrorLimitMessage = buildToolErrorLimitMessage(state.messages);
+
+    if (toolErrorLimitMessage) {
+      return { ...state, messages: [...state.messages, toolErrorLimitMessage] };
     }
 
     if (state.messages && state.messages.length > 0) {
