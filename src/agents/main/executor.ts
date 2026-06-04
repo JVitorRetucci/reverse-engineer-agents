@@ -90,15 +90,15 @@ export class MainAgentExecutor implements AgentExecutor {
     const allMcpTools = await this.mcpClientAdapter.getTools();
 
     const agentsConfig: Record<string, string> = {
-      "metrics-agent": "http://localhost:4201/.well-known/agent-card.json",
-      "artifact-extractor-agent":
-        "http://localhost:4202/.well-known/agent-card.json",
+      // "metrics-agent": "http://localhost:4201/.well-known/agent-card.json",
+      // "artifact-extractor-agent":
+        // "http://localhost:4202/.well-known/agent-card.json",
       "architecture-contract-validator-agent":
         "http://localhost:4101/.well-known/agent-card.json",
       "architecture-contract-extractor-agent":
         "http://localhost:4102/.well-known/agent-card.json",
-      "diagram-specialist-agent":
-        "http://localhost:4203/.well-known/agent-card.json",
+      // "diagram-specialist-agent":
+        // "http://localhost:4203/.well-known/agent-card.json",
     };
 
     const agentTools = this.createAgentTools(agentsConfig);

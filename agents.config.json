@@ -1,5 +1,5 @@
 {
-  "default_llm_service": "ollama",
+  "default_llm_service": "google",
   "agents": [
     {
       "id": "main",
@@ -45,14 +45,14 @@
     {
       "id": "architecture-contract-extractor",
       "name": "Architecture Contract Extractor Intermediate Agent",
-      "description": "Intermediate agent that extracts a high-level architecture view scoped to the analyzed use-case and infers expected architecture rules for downstream validation. It is the required first step before Architecture Contract Validator for architecture evidence gathering.",
+      "description": "Intermediate agent that extracts a high-level architecture view scoped to the analyzed use-case and discover/infers expected architecture rules for downstream validation. It is the required first step before Architecture Contract Validator for architecture evidence gathering.",
       "port": 4102,
       "executorPath": "../agents/architectureContractExtractor/executor.ts",
       "executorClass": "ArchitectureContractExtractorAgentExecutor",
       "skill": {
         "id": "architecture_contract_extraction",
         "name": "Architecture contract extraction",
-        "description": "Recover scoped architecture elements/relations for a specific use-case and infer likely architecture contracts expected for the system",
+        "description": "Recover scoped architecture elements/relations for a specific use-case and infer likely architecture contracts expected for the system.",
         "tags": [
           "architecture",
           "architecture extraction",
