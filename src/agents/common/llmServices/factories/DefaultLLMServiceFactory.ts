@@ -17,27 +17,31 @@ import {
 } from "../GoogleLLMService.js";
 import { join } from "path";
 import { readFileSync } from "fs";
+import { IOpenAILLMServiceParams, OpenAILLMService } from "../OpenAILLMService.js";
 
 type DefaultLLMService =
   | OllamaLLMService
   | AnthropicLLMService
+  | OpenAILLMService
   | GoogleLLMService;
 type IDefaultLLMServiceParams =
   | IOllamaLLMServiceParams
   | IAnthropicLLMServiceParams
+  | IOpenAILLMServiceParams
   | IGoogleLLMServiceParams;
 
 const availableLLMServices = {
   ollama: OllamaLLMService,
   anthropic: AnthropicLLMService,
   google: GoogleLLMService,
+  openai: OpenAILLMService,
 } as const;
 
 export class DefaultLLMServiceFactory extends LLMServiceFactory<
   DefaultLLMService,
   IDefaultLLMServiceParams
 > {
-  private defaultLLMService: "ollama" | "anthropic" | "google";
+  private defaultLLMService: "ollama" | "anthropic" | "google" | "openai";
 
   constructor(configPath: string = "agents.config.json") {
     super();
