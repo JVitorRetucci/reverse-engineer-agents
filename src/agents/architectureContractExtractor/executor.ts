@@ -15,6 +15,7 @@ import { ArchitectureContractExtractorAgent } from "./agent.js";
 import { AgentsCallerNode } from "@agents/architectureContractExtractor/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/architectureContractExtractor/nodes/LLMCallerNode.js";
 import { ToolsNode } from "@agents/architectureContractExtractor/nodes/ToolsNode.js";
+import { GoogleLLMServiceFactory } from "@agents/common/llmServices/factories/GoogleLLMServiceFactory.js";
 
 export class ArchitectureContractExtractorAgentExecutor
   implements AgentExecutor
@@ -121,7 +122,7 @@ export class ArchitectureContractExtractorAgentExecutor
       const initialIteration =
         requestContext.userMessage.role === "user"
           ? 0
-          : ((requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
+          : (Number(requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
 
       result = (await this.agent.invoke(
         {

@@ -24,6 +24,7 @@ const PROMPT_TEMPLATE = [
   "- Distinguish between observed facts and inferred rules.",
   "- Ground each architectural relation in evidence from request or delegated agents.",
   "- If evidence is missing, collect only what is needed and keep extraction bounded.",
+  "- If any sub-agent request for an information you don't have, you can request it to other sub-agents or return the request to the main agent, so it deliver the request to the user.",
   "- Prioritize complete architectural coverage for this use-case so validator can decide without extra sub-agent calls.",
   "",
   "Delegation policy:",
