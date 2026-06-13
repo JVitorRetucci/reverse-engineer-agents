@@ -7,6 +7,7 @@ import { ChatOllama } from "@langchain/ollama";
 import { BaseMessage } from "@langchain/core/messages";
 import { Runnable } from "@langchain/core/runnables";
 import { DynamicStructuredTool } from "@langchain/core/tools";
+import { normalizeLLMResponse } from "./LLMResponseNormalizer.js";
 
 export interface IOllamaLLMServiceParams
   extends ILLMServiceParams<DynamicStructuredTool> {}
@@ -43,7 +44,7 @@ export class OllamaLLMService extends LLMService<
   async invoke(params: BaseMessage[]): Promise<BaseMessage> {
     try {
       const response = await this.llmServiceInstance.invoke(params as any);
-      return response as BaseMessage;
+      return normalizeLLMResponse(response);
     } catch (error) {
       throw new CriticalError(
         error as Error,

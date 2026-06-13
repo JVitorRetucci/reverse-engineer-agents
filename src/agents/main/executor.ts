@@ -30,6 +30,25 @@ export class MainAgentExecutor implements AgentExecutor {
   private mcpClientAdapter: MultiServerMCPClient;
   private conversationStore: ConversationStore;
 
+  private serializeMessageContent(message: BaseMessage): string {
+    const content = message.content;
+    if (typeof content === "string") {
+      return content;
+    }
+
+    if (Array.isArray(content)) {
+      return content
+        .map((block: unknown) => {
+          if (typeof block === "string") return block;
+          if (block && typeof (block as any).text === "string") return (block as any).text;
+          return JSON.stringify(block);
+        })
+        .join("");
+    }
+
+    return JSON.stringify(content ?? "");
+  }
+
   constructor() {
     this.mcpClientAdapter = MCPClientsAdapter.getMultipleClientsConnection({
       mcpServers: {
@@ -237,7 +256,7 @@ export class MainAgentExecutor implements AgentExecutor {
         {
           kind: "data",
           data: {
-            content: lastMessage.content,
+            content: this.serializeMessageContent(lastMessage),
             type: lastMessage.type,
           },
         },

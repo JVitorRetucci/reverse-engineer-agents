@@ -7,6 +7,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { BaseMessage } from "@langchain/core/messages";
 import { Runnable } from "@langchain/core/runnables";
 import { DynamicStructuredTool } from "@langchain/core/tools";
+import { normalizeLLMResponse } from "./LLMResponseNormalizer.js";
 
 export interface IOpenAILLMServiceParams
   extends ILLMServiceParams<DynamicStructuredTool> {}
@@ -39,8 +40,8 @@ export class OpenAILLMService extends LLMService<
   // TODO: Fazer tratamento com EITHER?
   async invoke(params: BaseMessage[]): Promise<BaseMessage> {
     try {
-      const response = await this.llmServiceInstance.invoke(params as any);
-      return response as BaseMessage;
+      const response = await this.llmServiceInstance.invoke(params);
+      return normalizeLLMResponse(response);
     } catch (error) {
       throw new CriticalError(
         error as Error,

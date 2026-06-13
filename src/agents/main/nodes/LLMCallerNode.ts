@@ -79,7 +79,7 @@ const PROMPT_TEMPLATE = [
 "- Distinguish clearly between the initial response and subsequent detailed analyses.",
 "- The first complete analysis should prioritize business-flow understanding before implementation understanding.",
 "- Always prefer presenting the activity diagram before discussing classes, methods, or source-code details.",
-"- When sufficient information is available, generate an activity diagram in Mermaid syntax representing the reconstructed use-case flow.",
+"- When sufficient information is available, generate an UML activity diagram in Mermaid syntax representing the reconstructed use-case flow.",
 "- After the activity diagram, present a high-level sequence-oriented view of the execution flow.",
 "- Prefer presenting the reconstructed sequence flow, participating classes/components, and method invocation chain before presenting detailed method explanations.",
 "- Delay low-level implementation details until explicitly requested by the user or required for understanding the flow.",

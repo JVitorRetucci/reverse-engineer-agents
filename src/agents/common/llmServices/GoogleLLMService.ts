@@ -9,6 +9,7 @@ import { Runnable } from "@langchain/core/runnables";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { z } from "zod";
+import { normalizeLLMResponse } from "./LLMResponseNormalizer.js";
 
 export interface IGoogleLLMServiceParams
   extends ILLMServiceParams<DynamicStructuredTool> {}
@@ -106,7 +107,8 @@ export class GoogleLLMService extends LLMService<BaseMessage[], BaseMessage> {
         sanitizedParams = params;
       }
 
-      return await this.llmServiceInstance.invoke(sanitizedParams);
+      const response = await this.llmServiceInstance.invoke(sanitizedParams);
+      return normalizeLLMResponse(response);
     } catch (error) {
       console.error({error})
       throw new CriticalError(
