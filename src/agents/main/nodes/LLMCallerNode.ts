@@ -46,6 +46,7 @@ const PROMPT_TEMPLATE = [
 "## Delegation policy:",
 "- When the user asks about metrics/statistics/quantitative code analysis (for example: lines of code, complexity, coupling), you MUST call 'metrics-agent'.",
 "- For code base understanding, you MUST call 'architecture-contract-extractor-agent' first, then call 'architecture-contract-validator-agent' with extractor output and desired architecture.",
+"- Pass all information gathered from the user to the sub-agents.",
 "- Never call 'architecture-contract-validator-agent' first when architecture evidence is missing.",
 "- If validator returns NEEDS_ARCHITECTURE_EXTRACTION, call extractor and then retry validator with extracted evidence.",
 "- For use-case reconstruction, business-flow understanding, feature tracing, user-story discovery, and reverse-engineering activities, prefer delegating investigation tasks before generating conclusions.",
@@ -78,7 +79,7 @@ const PROMPT_TEMPLATE = [
 "- Distinguish clearly between the initial response and subsequent detailed analyses.",
 "- The first complete analysis should prioritize business-flow understanding before implementation understanding.",
 "- Always prefer presenting the activity diagram before discussing classes, methods, or source-code details.",
-"- When sufficient information is available, generate an activity diagram in Mermaid syntax representing the reconstructed use-case flow.",
+"- When sufficient information is available, generate an UML activity diagram in Mermaid syntax representing the reconstructed use-case flow.",
 "- After the activity diagram, present a high-level sequence-oriented view of the execution flow.",
 "- Prefer presenting the reconstructed sequence flow, participating classes/components, and method invocation chain before presenting detailed method explanations.",
 "- Delay low-level implementation details until explicitly requested by the user or required for understanding the flow.",
@@ -114,10 +115,15 @@ const MAX_ITERATIONS = parseInt(process.env.MAX_AGENT_ITERATIONS ?? "5", 10);
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
+  private windowSize: number = parseInt(process.env.CONVO_WINDOW ?? "20", 10);
 
-  constructor(llmService: LLMService<BaseMessage[], BaseMessage>) {
+  constructor(
+    llmService: LLMService<BaseMessage[], BaseMessage>,
+    windowSize?: number,
+  ) {
     super();
     this.llmService = llmService;
+    if (windowSize && Number.isFinite(windowSize)) this.windowSize = windowSize;
   }
 
   public async execute(state: AgentState): Promise<AgentState> {
@@ -137,55 +143,43 @@ export class LLMCallerNode extends Node<AgentState> {
         note: "Por favor, adicione este resumo ao contexto do agente que chamou.",
       });
 
-      const summaryMsg = new ToolMessage({ tool_call_id: "iteration_error", content: summaryText });
+      const summaryMsg = new ToolMessage({
+        tool_call_id: "iteration_error",
+        content: summaryText,
+      });
 
       return { ...state, messages: [...(state.messages ?? []), summaryMsg] };
     }
 
     const nextIteration = currentIteration + 1;
 
-    if (state.messages && state.messages.length > 0) {
-      if (process.env.DEBUG_MODE === "true") {
-        console.log(
-          `...invoking model from LLMCallerNode (iteration: ${nextIteration})`,
-        );
-      }
-      const response = await this.llmService.invoke([new SystemMessage(PROMPT_TEMPLATE), ...state.messages]);
-
-            const toolErrorLimitMessage = buildToolErrorLimitMessage(state.messages);
-
-            if (toolErrorLimitMessage) {
-              return { ...state, messages: [...state.messages, toolErrorLimitMessage] };
-            }
-
-      const newState = {
-        ...state,
-        iterationLevel: nextIteration,
-        messages: [...state.messages, response],
-      };
-
-      return newState;
+    if (process.env.DEBUG_MODE === "true") {
+      console.log(
+        `...invoking model from LLMCallerNode (iteration: ${nextIteration})`,
+      );
     }
+    const systemPromptVersion = state.systemPromptVersion;
+    const systemMessage = systemPromptVersion
+      ? new SystemMessage(`[SystemPromptVersion:${systemPromptVersion}]`)
+      : new SystemMessage(PROMPT_TEMPLATE);
 
-    const prompt = [
-      new SystemMessage(PROMPT_TEMPLATE),
-      ...(state.messages ?? []),
-      new HumanMessage(
-        // Placeholder locale
-        `I want an overview of the project located at "./", note that I'm in a Windows/Powershell environment`
-      ),
-    ];
+    const history = (state.messages ?? []).slice(-this.windowSize);
 
-    const response = await this.llmService.invoke(prompt);
+    const response = await this.llmService.invoke([systemMessage, ...history]);
+
+    const toolErrorLimitMessage = buildToolErrorLimitMessage(state.messages);
+
+    if (toolErrorLimitMessage) {
+      return {
+        ...state,
+        messages: [...state.messages, toolErrorLimitMessage],
+      };
+    }
 
     const newState = {
       ...state,
       iterationLevel: nextIteration,
-      messages: [
-        ...(state.messages ?? []),
-        prompt.pop() as BaseMessage,
-        response,
-      ],
+      messages: [...(state.messages ?? []), response],
     };
 
     return newState;

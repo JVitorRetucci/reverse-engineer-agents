@@ -7,6 +7,7 @@ import { ChatOllama } from "@langchain/ollama";
 import { BaseMessage } from "@langchain/core/messages";
 import { Runnable } from "@langchain/core/runnables";
 import { DynamicStructuredTool } from "@langchain/core/tools";
+import { normalizeLLMResponse } from "./LLMResponseNormalizer.js";
 
 export interface IOllamaLLMServiceParams
   extends ILLMServiceParams<DynamicStructuredTool> {}
@@ -21,10 +22,11 @@ export class OllamaLLMService extends LLMService<
     super(params);
 
     const baseModel = new ChatOllama({
-      // model: params?.model ?? "qwen3.5:cloud",
       model: params?.model ?? "gpt-oss:120b-cloud",
-      // model: params?.model ?? "gpt-oss:20b-cloud",
+      // model: params?.model ?? "qwen3.5:cloud",
       // model: params?.model ?? "gemma4:31b-cloud",
+      // model: params?.model ?? "glm-5.1:cloud",
+      // model: params?.model ?? "glm-5:cloud",
       temperature: params?.temperature,
       
     });
@@ -42,7 +44,7 @@ export class OllamaLLMService extends LLMService<
   async invoke(params: BaseMessage[]): Promise<BaseMessage> {
     try {
       const response = await this.llmServiceInstance.invoke(params as any);
-      return response as BaseMessage;
+      return normalizeLLMResponse(response);
     } catch (error) {
       throw new CriticalError(
         error as Error,

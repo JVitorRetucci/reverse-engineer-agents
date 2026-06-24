@@ -11,12 +11,15 @@ import { MainAgent } from "@agents/main/agent.js";
 import { AgentsCallerNode } from "@agents/main/nodes/AgentsCallerNode.js";
 import { LLMCallerNode } from "@agents/main/nodes/LLMCallerNode.js";
 import { ToolsNode } from "@agents/main/nodes/ToolsNode.js";
+import ConversationStore from "@agents/common/store/ConversationStore.js";
+import { AIMessage, ToolMessage } from "@langchain/core/messages";
 import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { CompiledStateGraph } from "@langchain/langgraph";
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { GoogleLLMServiceFactory } from "@agents/common/llmServices/factories/GoogleLLMServiceFactory.js";
 
 export class MainAgentExecutor implements AgentExecutor {
   private agent?: CompiledStateGraph<
@@ -25,6 +28,26 @@ export class MainAgentExecutor implements AgentExecutor {
     string | "__start__"
   > = undefined;
   private mcpClientAdapter: MultiServerMCPClient;
+  private conversationStore: ConversationStore;
+
+  private serializeMessageContent(message: BaseMessage): string {
+    const content = message.content;
+    if (typeof content === "string") {
+      return content;
+    }
+
+    if (Array.isArray(content)) {
+      return content
+        .map((block: unknown) => {
+          if (typeof block === "string") return block;
+          if (block && typeof (block as any).text === "string") return (block as any).text;
+          return JSON.stringify(block);
+        })
+        .join("");
+    }
+
+    return JSON.stringify(content ?? "");
+  }
 
   constructor() {
     this.mcpClientAdapter = MCPClientsAdapter.getMultipleClientsConnection({
@@ -42,6 +65,14 @@ export class MainAgentExecutor implements AgentExecutor {
     });
 
     this.initializeAgent();
+    // inicializa store de conversas (file-backed por padrão)
+    try {
+      this.conversationStore = ConversationStore.init(process.env.CONVO_STORE_PATH ?? "data/conversations");
+    } catch (e) {
+      // fallback para store em memória
+      // @ts-ignore
+      this.conversationStore = ConversationStore.init(":memory:");
+    }
   }
 
   private mapUserMessageToAgentMessages(
@@ -142,17 +173,39 @@ export class MainAgentExecutor implements AgentExecutor {
     if (!this.agent) return;
 
     const mappedMessages = this.mapUserMessageToAgentMessages(requestContext);
+    const contextId = requestContext.contextId;
+
+    // Carrega histórico do store (se existir) e converte para BaseMessage[]
+    let stateMessages = mappedMessages;
+    if (contextId) {
+      try {
+        const stored = this.conversationStore.loadHistory(contextId, { window: 20 });
+        const converted = stored.map((s) => {
+          const content = s.content;
+          const role = (s.role || "user").toString();
+          if (role === "user" || role === "human") return new HumanMessage(content);
+          if (role === "assistant" || role === "ai" || role === "agent") return new AIMessage(content);
+          return new ToolMessage({ tool_call_id: `${contextId}_${requestContext.taskId}`, content: content });
+        });
+        stateMessages = [...converted, ...mappedMessages];
+      } catch (e) {
+        console.warn("ConversationStore load failed, continuing without history", e);
+      }
+    }
 
     let result: AgentState;
     try {
       const initialIteration =
         requestContext.userMessage.role === "user"
           ? 0
-          : ((requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
+          : (Number(requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
 
       result = (await this.agent.invoke(
         {
-          iterationLevel: initialIteration,
+          iterationLevel:
+          requestContext.userMessage.role === "user"
+          ? 0
+          : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
           messages: mappedMessages,
         },
         { recursionLimit: 100, runName: "Main Agent" },
@@ -203,7 +256,7 @@ export class MainAgentExecutor implements AgentExecutor {
         {
           kind: "data",
           data: {
-            content: lastMessage.content,
+            content: this.serializeMessageContent(lastMessage),
             type: lastMessage.type,
           },
         },
@@ -216,6 +269,23 @@ export class MainAgentExecutor implements AgentExecutor {
 
     eventBus.publish(responseMessage);
     eventBus.finished();
+
+    // Persiste mensagens geradas no store (se houver contextId)
+    if (contextId) {
+      try {
+        const toAppend = (result.messages ?? []).map((m: any) => {
+          const rawType = typeof m?._getType === 'function' ? m._getType() : m.type;
+          let role = rawType;
+          if (rawType === 'human') role = 'user';
+          if (rawType === 'ai') role = 'assistant';
+          const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? '');
+          return { role, content, timestamp: Date.now() };
+        });
+        this.conversationStore.appendMessages(contextId, toAppend);
+      } catch (e) {
+        console.warn('Failed to append messages to ConversationStore', e);
+      }
+    }
   }
 
   async cancelTask(

@@ -33,8 +33,10 @@
     "@langchain/langgraph": "^1.0.2",
     "@langchain/mcp-adapters": "^1.0.3",
     "@langchain/ollama": "^1.2.2",
+    "@langchain/openai": "^1.4.7",
     "@mermaid-js/mermaid-cli": "^11.12.0",
     "@modelcontextprotocol/sdk": "^1.18.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.1.0",
     "express": "^5.1.0",
     "reflect-metadata": "^0.1.14",
@@ -42,6 +44,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.11",
     "@vitest/coverage-v8": "^3.2.4",

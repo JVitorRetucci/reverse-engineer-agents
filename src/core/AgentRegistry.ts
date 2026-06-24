@@ -5,6 +5,7 @@ import {
   InMemoryTaskStore,
 } from "@a2a-js/sdk/server";
 import { A2AExpressApp } from "@a2a-js/sdk/server/express";
+import cors from "cors";
 import express from "express";
 import { Server } from "http";
 import { readFileSync } from "fs";
@@ -67,24 +68,7 @@ export class AgentRegistry {
     const allowedOrigin = process.env.FRONTEND_ORIGIN ?? "http://localhost:3000";
     const appBuilder = new A2AExpressApp(requestHandler);
     const expressApp = express();
-
-    expressApp.use((req, res, next) => {
-      res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
-      res.setHeader("Vary", "Origin");
-      res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-      res.setHeader(
-        "Access-Control-Allow-Headers",
-        "Content-Type, Authorization"
-      );
-
-      if (req.method === "OPTIONS") {
-        res.sendStatus(204);
-        return;
-      }
-
-      next();
-    });
-
+    expressApp.use(this.createCorsMiddleware());
     appBuilder.setupRoutes(expressApp);
 
     const server = expressApp.listen(agentConfig.port, () => {
@@ -94,6 +78,16 @@ export class AgentRegistry {
     });
 
     this.servers.set(agentConfig.id, server);
+  }
+
+  /** Prototype-friendly CORS; set CORS_ORIGIN to restrict (comma-separated origins). */
+  private createCorsMiddleware() {
+    const corsOrigin = process.env.CORS_ORIGIN?.trim();
+    if (corsOrigin) {
+      const origins = corsOrigin.split(",").map((o) => o.trim());
+      return cors({ origin: origins });
+    }
+    return cors();
   }
 
   private async loadExecutor(agentConfig: AgentConfig): Promise<AgentExecutor> {

@@ -2,6 +2,7 @@ import { Node } from "@agents/common/nodes/Node.js";
 import { AgentState } from "@agents/common/states/AgentState.js";
 import { AIMessage, ToolMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
+import ConversationStore from "@agents/common/store/ConversationStore.js";
 
 interface IToolsNodeParams<T> {
   tools: T[];
@@ -73,6 +74,19 @@ export class ToolsNode<
           break;
         }
       }
+    }
+
+    // Persist tool results if we have a conversation context
+    try {
+      const contextId: string | undefined = (state as any).contextId;
+      if (contextId && toolResults.length > 0) {
+        const store = ConversationStore.init(process.env.CONVO_STORE_PATH ?? "data/conversations");
+        const toAppend = toolResults.map((r) => ({ role: "tool", content: r.content }));
+        store.appendMessages(contextId, toAppend as any);
+        // do not close store (file-backed) to allow reuse; in-memory store will be GC'd
+      }
+    } catch (e) {
+      console.warn("ToolsNode: failed to persist tool results", e);
     }
 
     return {
