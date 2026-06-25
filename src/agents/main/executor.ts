@@ -19,7 +19,6 @@ import { CompiledStateGraph } from "@langchain/langgraph";
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
-import { GoogleLLMServiceFactory } from "@agents/common/llmServices/factories/GoogleLLMServiceFactory.js";
 
 export class MainAgentExecutor implements AgentExecutor {
   private agent?: CompiledStateGraph<
@@ -128,6 +127,8 @@ export class MainAgentExecutor implements AgentExecutor {
         "http://localhost:4101/.well-known/agent-card.json",
       "architecture-contract-extractor-agent":
         "http://localhost:4102/.well-known/agent-card.json",
+      "usecase-specialist-agent":
+        "http://localhost:4103/.well-known/agent-card.json",
       // "diagram-specialist-agent":
         // "http://localhost:4203/.well-known/agent-card.json",
     };

@@ -102,7 +102,7 @@ export class AgentsCallerNode extends Node<AgentState> {
       if (!agentClient) {
         toolResults.push(
           new ToolMessage({
-            tool_call_id: uuidv4(),
+            tool_call_id: toolCall.id as string,
             content: JSON.stringify({
               error: `Could not connect to '${toolCall.name}' agent. Check if the agent is available and whether its URL is correct at the agent's card.`,
             }),
@@ -121,7 +121,7 @@ export class AgentsCallerNode extends Node<AgentState> {
         if ("error" in response) {
           toolResults.push(
             new ToolMessage({
-              tool_call_id: uuidv4(),
+              tool_call_id: toolCall.id as string,
               content: JSON.stringify({
                 error: response.error.message,
               }),
@@ -130,7 +130,7 @@ export class AgentsCallerNode extends Node<AgentState> {
         } else {
             const toolMessage = this.convertA2AMessageToToolMessage(
             response.result as Message,
-            uuidv4(),
+            toolCall.id as string,
           );
 
           try {
@@ -147,7 +147,7 @@ export class AgentsCallerNode extends Node<AgentState> {
       } catch (error) {
           toolResults.push(
             new ToolMessage({
-              tool_call_id: uuidv4(),
+              tool_call_id: toolCall.id as string,
               content: JSON.stringify({
                 error: error instanceof Error ? error.message : String(error),
               }),
