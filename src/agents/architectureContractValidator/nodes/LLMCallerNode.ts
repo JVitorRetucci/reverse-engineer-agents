@@ -50,7 +50,7 @@ const PROMPT_TEMPLATE = [
   "- If extractor output is unavailable, return a handoff request instead of calling extractor directly.",
   "",
   "Handling errors from tools and sub-agents:",
-  "- If a tool/sub-agent returns an error payload (for example fields like 'success: false', 'errorType', 'toolName', 'agentName'), first interpret and attempt local recovery by adjusting plan/inputs or requesting complementary evidence.",
+  "- If a tool/sub-agent returns an error payload (for example fields like 'success: false', 'errorType', 'toolName', 'agentName', or empty responses), first interpret and attempt local recovery by adjusting plan/inputs or requesting complementary evidence.",
   "- Prefer retries with corrected inputs or alternative evidence strategies over immediate failure.",
   "- Escalate only when local recovery is clearly impossible (for example MCP servers or sub-agents unavailable/misconfigured); state which tool/agent failed and confidence impact.",
   "",

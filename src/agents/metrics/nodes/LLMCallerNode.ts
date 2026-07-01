@@ -29,7 +29,7 @@ const PROMPT_TEMPLATE = [
 "- If evidence is incomplete, run additional tool calls with refined parameters.",
 "",
 "Error handling from MCP tools:",
-"- If a tool reurns an error payload (for example fields like 'success: false', 'errorType', 'toolName', 'agentName'), first try locarecovery by adjusting paths/parameters and retrying.",
+"- If a tool returns an error payload (for example fields like 'success: false', 'errorType', 'toolName', 'agentName'), first try locarecovery by adjusting paths/parameters and retrying.",
 "- If recovery is impossible (for example MCP unavailable or permanent misconfiguration), return the raw error payload without addinsemantic text.",
 "",
 "Reasoning process:",
