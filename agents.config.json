@@ -1,5 +1,5 @@
 {
-  "default_llm_service": "openai",
+  "default_llm_service": "anthropic",
   "agents": [
     {
       "id": "main",
