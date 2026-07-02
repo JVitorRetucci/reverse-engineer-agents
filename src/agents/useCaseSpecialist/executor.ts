@@ -143,7 +143,7 @@ export class UseCaseSpecialistAgentExecutor implements AgentExecutor {
             kind: "data",
             data: {
               content:
-                "O UseCaseSpecialistAgent encontrou um erro interno ao processar a tarefa. Verifique os logs do servidor para mais detalhes.",
+                "The UseCaseSpecialistAgent encountered an internal error while processing the task. Check server logs for more details.",
               type: "error",
             },
           },

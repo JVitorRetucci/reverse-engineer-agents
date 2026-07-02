@@ -151,7 +151,7 @@ export class LLMCallerNode extends Node<AgentState> {
         reason: `Max iterations (${MAX_ITERATIONS}) reached before LLM invocation.`,
         iterationLevel: currentIteration,
         messagesProcessed: state.messages?.length ?? 0,
-        note: "Por favor, adicione este resumo ao contexto do agente que chamou.",
+        note: "Please add this summary to the context of the calling agent.",
       });
 
       const summaryMsg = new ToolMessage({

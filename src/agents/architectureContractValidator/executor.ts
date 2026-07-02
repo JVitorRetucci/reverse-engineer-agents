@@ -143,7 +143,7 @@ export class ArchitectureContractValidatorAgentExecutor
             kind: "data",
             data: {
               content:
-                "O ArchitectureContractValidatorAgent encontrou um erro interno ao processar a tarefa. Verifique os logs do servidor para mais detalhes.",
+                "The ArchitectureContractValidatorAgent encountered an internal error while processing the task. Check server logs for more details.",
               type: "error",
             },
           },

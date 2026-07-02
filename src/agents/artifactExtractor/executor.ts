@@ -195,7 +195,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
             kind: "data",
             data: {
               content:
-                "O ArtifactExtractorAgent encontrou um erro interno ao processar a tarefa. Verifique os logs do servidor para mais detalhes.",
+                "The ArtifactExtractorAgent encountered an internal error while processing the task. Check server logs for more details.",
               type: "error",
             },
           },
@@ -227,15 +227,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
         {
           kind: "data",
           data: {
-            content: responseContent || "O ArtifactExtractorAgent não retornou conteúdo útil para esta solicitação.",
-            type: lastMessage.type,
-          },
-        },
-      ],
-      contextId: requestContext.contextId,
-    };
-
-    console.log(`Responded:\n`);
+            content: responseContent || "The ArtifactExtractorAgent did not return useful content for this request.",
     console.log({ responseMessage });
 
     eventBus.publish(responseMessage);
