@@ -10,6 +10,9 @@ export default defineConfig({
     alias: {
       '@core': path.resolve(__dirname, './src/core'),
       '@domain': path.resolve(__dirname, './src/domain'),
+      '@agents': path.resolve(__dirname, './src/agents'),
+      '@services': path.resolve(__dirname, './src/services'),
+      '@root': path.resolve(__dirname, './src'),
       '@application': path.resolve(__dirname, './src/application'),
       '@infra': path.resolve(__dirname, './src/infra'),
       '@presentation': path.resolve(__dirname, './src/presentation'),

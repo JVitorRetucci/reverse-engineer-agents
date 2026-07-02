@@ -26,6 +26,39 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
   > = undefined;
   private mcpClientAdapter: MultiServerMCPClient;
 
+  private serializeMessageContent(message: BaseMessage): string {
+    const content = (message as any).content;
+
+    if (typeof content === "string") {
+      return content;
+    }
+
+    if (Array.isArray(content)) {
+      return content
+        .map((block: unknown) => {
+          if (typeof block === "string") return block;
+          if (block && typeof (block as any).text === "string") return (block as any).text;
+          return JSON.stringify(block);
+        })
+        .join("");
+    }
+
+    return JSON.stringify(content ?? "");
+  }
+
+  private selectResponseMessage(messages: BaseMessage[]): BaseMessage {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const candidate = messages[index];
+      const serializedContent = this.serializeMessageContent(candidate).trim();
+
+      if (serializedContent) {
+        return candidate;
+      }
+    }
+
+    return messages[messages.length - 1] ?? new HumanMessage("");
+  }
+
   constructor() {
     this.mcpClientAdapter = MCPClientsAdapter.getMultipleClientsConnection({
       mcpServers: {
@@ -183,10 +216,8 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
       \n${msg.content}`),
     );
 
-    const lastMessage =
-      result.messages[
-        result.messages.length > 0 ? result.messages.length - 1 : 0
-      ];
+    const lastMessage = this.selectResponseMessage(result.messages);
+    const responseContent = this.serializeMessageContent(lastMessage);
 
     const responseMessage: Message = {
       kind: "message",
@@ -196,7 +227,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
         {
           kind: "data",
           data: {
-            content: lastMessage.content,
+            content: responseContent || "O ArtifactExtractorAgent não retornou conteúdo útil para esta solicitação.",
             type: lastMessage.type,
           },
         },
