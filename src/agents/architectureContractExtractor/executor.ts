@@ -146,7 +146,7 @@ export class ArchitectureContractExtractorAgentExecutor
             kind: "data",
             data: {
               content:
-                "O ArchitectureContractExtractorAgent encontrou um erro interno ao processar a tarefa. Verifique os logs do servidor para mais detalhes.",
+                "The ArchitectureContractExtractorAgent encountered an internal error while processing the task. Check server logs for more details.",
               type: "error",
             },
           },

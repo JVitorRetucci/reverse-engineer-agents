@@ -122,12 +122,7 @@ export class LLMCallerNode extends Node<AgentState> {
           reason: `Max iterations (${MAX_ITERATIONS}) reached before LLM invocation.`,
           iterationLevel: currentIteration,
           messagesProcessed: state.messages?.length ?? 0,
-          note: "Por favor, adicione este resumo ao contexto do agente que chamou.",
-        });
-
-        const summaryMsg = new ToolMessage({ tool_call_id: "iteration_error", content: summaryText });
-
-        return { ...state, messages: [...(state.messages ?? []), summaryMsg] };
+        note: "Please add this summary to the context of the calling agent.",
       }
 
     const toolErrorLimitMessage = buildToolErrorLimitMessage(state.messages);

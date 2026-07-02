@@ -223,7 +223,7 @@ export class MainAgentExecutor implements AgentExecutor {
             kind: "data",
             data: {
               content:
-                "O MainAgent encontrou um erro interno ao orquestrar a tarefa. Verifique os logs do servidor para mais detalhes.",
+                "The MainAgent encountered an internal error while orchestrating the task. Check server logs for more details.",
               type: "error",
             },
           },
