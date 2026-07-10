@@ -112,19 +112,26 @@ export class LLMCallerNode extends Node<AgentState> {
     const currentIteration = state.iterationLevel ?? 0;
     const nextIteration = currentIteration + 1;
 
-      if (currentIteration >= MAX_ITERATIONS) {
-        console.warn(
-          `Max iteration level (${MAX_ITERATIONS}) reached before LLM invocation. Ending execution.`,
-        );
+    if (currentIteration >= MAX_ITERATIONS) {
+      console.warn(
+        `Max iteration level (${MAX_ITERATIONS}) reached before LLM invocation. Ending execution.`,
+      );
 
-        const summaryText = JSON.stringify({
-          type: "iteration_error",
-          reason: `Max iterations (${MAX_ITERATIONS}) reached before LLM invocation.`,
-          iterationLevel: currentIteration,
-          messagesProcessed: state.messages?.length ?? 0,
+      const summaryText = JSON.stringify({
+        type: "iteration_error",
+        reason: `Max iterations (${MAX_ITERATIONS}) reached before LLM invocation.`,
+        iterationLevel: currentIteration,
+        messagesProcessed: state.messages?.length ?? 0,
         note: "Please add this summary to the context of the calling agent.",
-      }
+      });
 
+      const summaryMsg = new ToolMessage({
+        tool_call_id: "iteration_error",
+        content: summaryText,
+      });
+
+      return { ...state, messages: [...(state.messages ?? []), summaryMsg] };
+    }
     const toolErrorLimitMessage = buildToolErrorLimitMessage(state.messages);
 
     if (toolErrorLimitMessage) {
@@ -163,7 +170,11 @@ export class LLMCallerNode extends Node<AgentState> {
     return {
       ...state,
       iterationLevel: nextIteration,
-      messages: [...(state.messages ?? []), prompt.pop() as BaseMessage, response],
+      messages: [
+        ...(state.messages ?? []),
+        prompt.pop() as BaseMessage,
+        response,
+      ],
     };
   }
 }
