@@ -171,7 +171,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
       const initialIteration =
         requestContext.userMessage.role === "user"
           ? 0
-          : ((requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
+          : (Number(requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
 
       result = (await this.agent.invoke(
         {
@@ -228,6 +228,14 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
           kind: "data",
           data: {
             content: responseContent || "The ArtifactExtractorAgent did not return useful content for this request.",
+            type: lastMessage.type,
+          },
+        },
+      ],
+      contextId: requestContext.contextId,
+    };
+
+    console.log(`Responded:\n`);
     console.log({ responseMessage });
 
     eventBus.publish(responseMessage);

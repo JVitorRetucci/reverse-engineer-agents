@@ -22,7 +22,8 @@ export class AnthropicLLMService extends LLMService<
     super(params);
 
     const baseModel = new ChatAnthropic({
-      model: params?.model ?? "claude-sonnet-4-20250514",
+      model: params?.model ?? "claude-sonnet-5",
+      // model: params?.model ?? "claude-sonnet-4-20250514",
       anthropicApiKey: params?.secretKey ?? process.env.ANTHROPIC_API_KEY,
       temperature: params?.temperature,
       maxTokens: params?.maxTokens,
