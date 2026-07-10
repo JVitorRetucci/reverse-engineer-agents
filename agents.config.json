@@ -1,5 +1,5 @@
 {
-  "default_llm_service": "anthropic",
+  "default_llm_service": "open_router",
   "agents": [
     {
       "id": "main",
