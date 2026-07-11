@@ -46,6 +46,7 @@ export class DefaultLLMServiceFactory extends LLMServiceFactory<
   IDefaultLLMServiceParams
 > {
   private defaultLLMService: "ollama" | "anthropic" | "google" | "openai" | "open_router";
+  private llmModel?: string;
 
   constructor(configPath: string = "agents.config.json") {
     super();
@@ -59,9 +60,11 @@ export class DefaultLLMServiceFactory extends LLMServiceFactory<
     )
       ? config.default_llm_service
       : "ollama";
+
+    this.llmModel = config.default_llm_model
   }
 
   create(constructorParams?: IDefaultLLMServiceParams): DefaultLLMService {
-    return new availableLLMServices[this.defaultLLMService](constructorParams);
+    return new availableLLMServices[this.defaultLLMService]({...constructorParams, model: this.llmModel});
   }
 }
