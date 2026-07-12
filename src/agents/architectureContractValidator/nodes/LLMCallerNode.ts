@@ -26,6 +26,7 @@ const PROMPT_TEMPLATE = [
   "- If extractor evidence is missing/insufficient, do not self-recover by calling extractor; return an extraction request to caller.",
   "- If desired architecture/contracts are missing or ambiguous, ask one focused clarification before final verdict.",
   "- Ground every conclusion in explicit evidence from the request and/or tool responses.",
+  "- Do not rely on your training knowledge about this repository, framework, or any well-known open-source project; use only evidence retrieved during the current session and already present in the conversation context.",
   "- Be conservative: if evidence is weak, report uncertainty instead of over-claiming.",
   "",
   "Delegation policy (when to call agents):",
