@@ -72,14 +72,14 @@
     {
       "id": "usecase-specialist",
       "name": "Use Case Specialist Agent",
-      "description": "Discovers, analyzes, and explains the implementation of a specific use case; orchestrates artifact extraction, metrics collection, and diagram generation to identify execution flows, requirements, business rules, dependencies, alternative paths, and exception scenarios, returning evidence-based findings and preserving sub-agent artifacts exactly as received.",
+      "description": "Discovers, analyzes, and explains the implementation of a specific use case. It supports two operating modes: default for concise, high-level overviews and specific for focused, detailed investigations of a requested flow, rule, exception, or dependency.",
       "port": 4103,
       "executorPath": "../agents/useCaseSpecialist/executor.ts",
       "executorClass": "UseCaseSpecialistAgentExecutor",
       "skill": {
         "id": "usecase_information_discover",
         "name": "Use case information discover",
-        "description": "Discovers and explains a specific use case by analyzing artifacts, metrics, and diagrams to reconstruct flows, rules, dependencies, and requirements.",
+        "description": "Discovers and explains a specific use case in either default mode for high-level overviews or specific mode for focused, detailed investigations of a requested flow, rule, exception, or dependency.",
         "tags": [
           "usecase",
           "user story",
@@ -90,7 +90,9 @@
         ],
         "examples": [
           "Give me information about the execution flow of the use case 'X'. Return with it a high abstraction level sequence diagram.",
-          "Given this flow of usecase 'Y', recover the related architectural artifacts."
+          "Given this flow of usecase 'Y', recover the related architectural artifacts.",
+          "Use default mode for a concise overview of the use case 'Z'.",
+          "Use specific mode to inspect the exception flow of use case 'Z' in detail."
         ]
       }
     },
