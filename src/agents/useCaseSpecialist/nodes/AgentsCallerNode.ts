@@ -1,5 +1,6 @@
 import { Message, MessageSendParams } from "@a2a-js/sdk";
 import { A2AClient } from "@a2a-js/sdk/client";
+import { createA2AClientWithTimeout } from "@agents/common/utils/a2aClientFactory.js";
 import { Node } from "@agents/common/nodes/Node.js";
 import { AgentState } from "@agents/common/states/AgentState.js";
 import { AIMessage, ToolMessage } from "@langchain/core/messages";
@@ -26,7 +27,7 @@ export class AgentsCallerNode extends Node<AgentState> {
 
     if (!this.agentClients.has(agentName)) {
       try {
-        const client = await A2AClient.fromCardUrl(agentUrl);
+        const client = await createA2AClientWithTimeout(agentUrl);
         this.agentClients.set(agentName, client);
       } catch (error) {
         console.error(`Error while creating A2A clients for '${agentName}':`, error);
@@ -134,7 +135,11 @@ export class AgentsCallerNode extends Node<AgentState> {
           );
 
           try {
-            const parsed = JSON.parse(toolMessage.content);
+            const toolMessageContent =
+              typeof toolMessage.content === "string"
+                ? toolMessage.content
+                : JSON.stringify(toolMessage.content);
+            const parsed = JSON.parse(toolMessageContent);
             if (parsed && parsed.type === "iteration_error") {
               iterationErrorResults.push(toolMessage);
             } else {
