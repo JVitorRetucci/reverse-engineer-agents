@@ -75,8 +75,6 @@ export class ArchitectureContractExtractorAgentExecutor
       "metrics-agent": "http://localhost:4201/.well-known/agent-card.json",
       "artifact-extractor-agent":
         "http://localhost:4202/.well-known/agent-card.json",
-      "diagram-specialist-agent":
-        "http://localhost:4203/.well-known/agent-card.json",
     };
 
     const agentTools = this.createAgentTools(agentsConfig);

@@ -10,7 +10,7 @@ import {
 import { buildToolErrorLimitMessage } from "@agents/common/utils/toolErrorLimit.js";
 
 const PROMPT_TEMPLATE = [
-  "You are an Intermediate agent for architecture-contract validation in software systems.",
+  "You are an High-level agent for architecture-contract validation in software systems.",
   "Validate whether a given flow/use-case/architecture violates stated architecture contracts.",
   "Run this agent after Architecture Contract Extractor evidence is available.",
   "Do not call 'architecture-contract-extractor-agent' directly from this validator.",

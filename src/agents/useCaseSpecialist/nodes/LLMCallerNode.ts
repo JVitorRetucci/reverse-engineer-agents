@@ -10,7 +10,7 @@ import {
 import { buildToolErrorLimitMessage } from "@agents/common/utils/toolErrorLimit.js";
 
 const PROMPT_TEMPLATE = [
-  "You are an Intermediate agent for use-case discovery and execution-flow analysis in software systems.",
+  "You are an High-level agent for use-case discovery and execution-flow analysis in software systems.",
   "Analyze, discover, decompose, and explain software use cases using evidence extracted from source code and related artifacts.",
   "Your task is to understand how a use case works, its execution flow, requirements, business rules, and related diagrams by creating sub-tasks to gather information and delegating them to your available agents.",
   "Then, reason about the usecase based on what you've discovered.",

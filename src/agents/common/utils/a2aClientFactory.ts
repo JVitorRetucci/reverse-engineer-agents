@@ -2,7 +2,7 @@ import { A2AClient } from "@a2a-js/sdk/client";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 
-export const DEFAULT_A2A_TIMEOUT_MS = 30 * 60 * 1000;
+export const DEFAULT_A2A_TIMEOUT_MS = 90 * 60 * 1000;
 
 function toAbortError(): Error {
   if (typeof DOMException === "function") {
