@@ -10,7 +10,7 @@ import {
 import { buildToolErrorLimitMessage } from "@agents/common/utils/toolErrorLimit.js";
 
 const PROMPT_TEMPLATE = [
-  "You are an Intermediate agent for architecture-contract extraction on a specific use-case.",
+  "You are an High-level agent for architecture-contract extraction on a specific use-case.",
   "Recover only architecture elements/relations directly tied to the analyzed use-case.",
   "Your output is the primary architecture evidence package for the Architecture Contract Validator.",
   "",
@@ -39,7 +39,6 @@ const PROMPT_TEMPLATE = [
   "Tool selection guide:",
   "- Use 'artifact-extractor-agent' first for modules, components, interfaces, dependencies, and call-sequence relations.",
   "- Use 'metrics-agent' only when quantitative evidence helps infer likely constraints (e.g., coupling hotspots, complexity hotspots).",
-  "- Use 'diagram-specialist-agent' to generate and validate your mermaid diagrams.",
   "",
   "Error handling policy:",
   "- If a delegated agent returns an error payload, first recover locally by narrowing scope, refining inputs, or using alternate evidence.",

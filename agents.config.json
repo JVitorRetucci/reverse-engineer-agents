@@ -1,6 +1,6 @@
 {
   "default_llm_service": "open_router",
-  "default_llm_model": "openai/gpt-oss-120b",
+  "default_llm_model": "anthropic/claude-sonnet-5",
   "agents": [
     {
       "id": "main",
