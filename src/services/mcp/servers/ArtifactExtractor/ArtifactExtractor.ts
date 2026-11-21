@@ -46,58 +46,22 @@ export class ArtifactExtractorServer extends McpServer {
   }: IArtifactExtractorServerParams) {
     super(mcpServerConfig.serverInfo);
 
-    const listDirectoriesTool = listDirectoriesToolFactory.createToolClass();
-    const directoryNavigationTool = directoryNavigationToolFactory.createToolClass();
-    const getFileContentTool = getFileContentToolFactory.createToolClass();
-    const searchInFileSystemTool = searchInFileSystemToolFactory.createToolClass();
-    const linuxListDirectoriesTool = linuxListDirectoriesToolFactory.createToolClass();
-    const linuxDirectoryNavigationTool = linuxDirectoryNavigationToolFactory.createToolClass();
-    const linuxGetFileContentTool = linuxGetFileContentToolFactory.createToolClass();
-    const linuxSearchInFileSystemTool = linuxSearchInFileSystemToolFactory.createToolClass();
-    const linuxTools = [
-      linuxListDirectoriesTool,
-      linuxDirectoryNavigationTool,
-      linuxGetFileContentTool,
-      linuxSearchInFileSystemTool,
-    ];
+    const isLinux = process.platform === "linux";
+    const tools = isLinux
+      ? [
+          linuxListDirectoriesToolFactory.createToolClass(),
+          linuxDirectoryNavigationToolFactory.createToolClass(),
+          linuxGetFileContentToolFactory.createToolClass(),
+          linuxSearchInFileSystemToolFactory.createToolClass(),
+        ]
+      : [
+          listDirectoriesToolFactory.createToolClass(),
+          directoryNavigationToolFactory.createToolClass(),
+          getFileContentToolFactory.createToolClass(),
+          searchInFileSystemToolFactory.createToolClass(),
+        ];
 
-    super.registerTool(
-      listDirectoriesTool.name,
-      {
-        description: listDirectoriesTool.description,
-        inputSchema: listDirectoriesTool.parametersSchema,
-      },
-      listDirectoriesTool.invoke.bind(listDirectoriesTool)
-    );
-
-    super.registerTool(
-      directoryNavigationTool.name,
-      {
-        description: directoryNavigationTool.description,
-        inputSchema: directoryNavigationTool.parametersSchema,
-      },
-      directoryNavigationTool.invoke.bind(directoryNavigationTool)
-    );
-
-    super.registerTool(
-      getFileContentTool.name,
-      {
-        description: getFileContentTool.description,
-        inputSchema: getFileContentTool.parametersSchema,
-      },
-      getFileContentTool.invoke.bind(getFileContentTool)
-    );
-
-    super.registerTool(
-      searchInFileSystemTool.name,
-      {
-        description: searchInFileSystemTool.description,
-        inputSchema: searchInFileSystemTool.parametersSchema,
-      },
-      searchInFileSystemTool.invoke.bind(searchInFileSystemTool)
-    );
-
-    for (const tool of linuxTools) {
+    for (const tool of tools) {
       super.registerTool(
         tool.name,
         {
