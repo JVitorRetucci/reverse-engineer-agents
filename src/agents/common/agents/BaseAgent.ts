@@ -1,16 +1,17 @@
 import { CompiledStateGraph } from "@langchain/langgraph";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 
 export abstract class BaseAgent<T> {
   protected colorCode: string = "\x1b[31m";
   protected nodes: Record<string, (state: T) => T | Promise<T>> = {};
 
   protected readonly MAX_ITERATIONS = parseInt(
-    process.env.MAX_AGENT_ITERATIONS ?? "5",
+    String(getRuntimeConfig().max_agent_iterations),
     10
   );
 
   protected printDebugMessage(str: string): void {
-    if (process.env.DEBUG_MODE === "true")
+    if (getRuntimeConfig().debug_mode)
       console.log(`${this.colorCode}[${this.constructor.name}]\x1b[0m ` + str);
   }
 

@@ -10,6 +10,7 @@ import express from "express";
 import { Server } from "http";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { applyRuntimeConfigToEnvironment, getRuntimeConfig } from "./RuntimeConfig.js";
 
 interface AgentConfig {
   id: string;
@@ -33,6 +34,7 @@ export class AgentRegistry {
     const fullPath = join(process.cwd(), configPath);
     const configContent = readFileSync(fullPath, "utf-8");
     this.config = JSON.parse(configContent);
+    applyRuntimeConfigToEnvironment(configPath);
   }
 
   async startAllAgents(): Promise<void> {
@@ -65,7 +67,6 @@ export class AgentRegistry {
       executor
     );
 
-    const allowedOrigin = process.env.FRONTEND_ORIGIN ?? "http://localhost:3000";
     const appBuilder = new A2AExpressApp(requestHandler);
     const expressApp = express();
     expressApp.use(this.createCorsMiddleware());
@@ -82,9 +83,8 @@ export class AgentRegistry {
 
   /** Prototype-friendly CORS; set CORS_ORIGIN to restrict (comma-separated origins). */
   private createCorsMiddleware() {
-    const corsOrigin = process.env.CORS_ORIGIN?.trim();
-    if (corsOrigin) {
-      const origins = corsOrigin.split(",").map((o) => o.trim());
+    const origins = getRuntimeConfig().cors_origin;
+    if (origins.length > 0) {
       return cors({ origin: origins });
     }
     return cors();

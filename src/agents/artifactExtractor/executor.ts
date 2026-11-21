@@ -17,6 +17,7 @@ import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { ArtifactExtractorAgent } from "./agent.js";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 
 export class ArtifactExtractorAgentExecutor implements AgentExecutor {
   private agent?: CompiledStateGraph<
@@ -60,6 +61,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
   }
 
   constructor() {
+    const runtime = getRuntimeConfig();
     this.mcpClientAdapter = MCPClientsAdapter.getMultipleClientsConnection({
       mcpServers: {
         "artifact-extractor": {
@@ -67,7 +69,7 @@ export class ArtifactExtractorAgentExecutor implements AgentExecutor {
           args: [
             "run",
             "--prefix",
-            process.env.ARTIFACT_EXTRACTOR_MCP_PATH ?? "",
+            runtime.mcp_servers.artifact_extractor_path,
             "mcp-server/artifact-extractor",
           ],
         },

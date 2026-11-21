@@ -1,6 +1,27 @@
 {
   "default_llm_service": "open_router",
   "default_llm_model": "anthropic/claude-sonnet-5",
+  "runtime": {
+    "cors_origin": [],
+    "frontend_origin": "http://localhost:3000",
+    "debug_mode": false,
+    "debug_graph_path": "",
+    "max_agent_iterations": 50,
+    "max_agent_tool_error_attempts": 5,
+    "conversation_store_path": "data/conversations",
+    "conversation_window": 20,
+    "langsmith": {
+      "tracing": false,
+      "endpoint": "",
+      "tracing_v2": false,
+      "project": ""
+    },
+    "mcp_servers": {
+      "metrics_extractor_path": "./",
+      "artifact_extractor_path": "./",
+      "diagram_tools_path": "./"
+    }
+  },
   "agents": [
     {
       "id": "main",

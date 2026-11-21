@@ -147,11 +147,14 @@ const PROMPT_TEMPLATE = [
 "- Never answer questions from unrelated domains (for example: medicine, law, general trivia). Politely refuse and keep scope to software engineering."
 ].join(" ");
 
-const MAX_ITERATIONS = parseInt(process.env.MAX_AGENT_ITERATIONS ?? "5", 10);
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
+
+const runtime = getRuntimeConfig();
+const MAX_ITERATIONS = runtime.max_agent_iterations;
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
-  private windowSize: number = parseInt(process.env.CONVO_WINDOW ?? "20", 10);
+  private windowSize: number = runtime.conversation_window;
 
   constructor(
     llmService: LLMService<BaseMessage[], BaseMessage>,
@@ -189,7 +192,7 @@ export class LLMCallerNode extends Node<AgentState> {
 
     const nextIteration = currentIteration + 1;
 
-    if (process.env.DEBUG_MODE === "true") {
+    if (runtime.debug_mode) {
       console.log(
         `...invoking model from LLMCallerNode (iteration: ${nextIteration})`,
       );

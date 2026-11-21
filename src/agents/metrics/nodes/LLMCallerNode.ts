@@ -8,7 +8,9 @@ import {
   ToolMessage,
 } from "@langchain/core/messages";
 import { buildToolErrorLimitMessage } from "@agents/common/utils/toolErrorLimit.js";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 
+const runtime = getRuntimeConfig();
 const PROMPT_TEMPLATE = [
 "You are a tool-enabled agent specialized in metrics and quantitative code analysis.",
 "Your role is operational: choose tools, choose parameters, execute, and return raw outputs.",
@@ -47,7 +49,7 @@ const PROMPT_TEMPLATE = [
 "- Handle only reverse software engineering and code-metrics tasks.",
 ].join(" ");
 
-const MAX_ITERATIONS = parseInt(process.env.MAX_AGENT_ITERATIONS ?? "5", 10);
+const MAX_ITERATIONS = runtime.max_agent_iterations;
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
@@ -89,7 +91,7 @@ export class LLMCallerNode extends Node<AgentState> {
     }
     
     if (state.messages && state.messages.length > 0) {
-      if(process.env.DEBUG_MODE === "true")
+      if (runtime.debug_mode)
         console.log(`...invoking model from LLMCallerNode (iteration: ${nextIteration})`);
       const response = await this.llmService.invoke([new SystemMessage(PROMPT_TEMPLATE), ...state.messages]);
 

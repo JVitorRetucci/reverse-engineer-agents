@@ -8,7 +8,9 @@ import {
   ToolMessage,
 } from "@langchain/core/messages";
 import { buildToolErrorLimitMessage } from "@agents/common/utils/toolErrorLimit.js";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 
+const runtime = getRuntimeConfig();
 const PROMPT_TEMPLATE = [
   "You are an High-level agent for architecture-contract extraction on a specific use-case.",
   "Recover only architecture elements/relations directly tied to the analyzed use-case.",
@@ -69,7 +71,7 @@ const PROMPT_TEMPLATE = [
   "- Politely refuse unrelated topics.",
 ].join(" ");
 
-const MAX_ITERATIONS = parseInt(process.env.MAX_AGENT_ITERATIONS ?? "5", 10);
+const MAX_ITERATIONS = runtime.max_agent_iterations;
 
 export class LLMCallerNode extends Node<AgentState> {
   private llmService: LLMService<BaseMessage[], BaseMessage>;
@@ -110,7 +112,7 @@ export class LLMCallerNode extends Node<AgentState> {
     }
 
     if (state.messages && state.messages.length > 0) {
-      if (process.env.DEBUG_MODE === "true") {
+      if (runtime.debug_mode) {
         console.log(
           `...invoking model from LLMCallerNode (iteration: ${nextIteration})`,
         );

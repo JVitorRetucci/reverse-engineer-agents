@@ -19,6 +19,7 @@ import { CompiledStateGraph } from "@langchain/langgraph";
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 
 export class MainAgentExecutor implements AgentExecutor {
   private agent?: CompiledStateGraph<
@@ -49,6 +50,7 @@ export class MainAgentExecutor implements AgentExecutor {
   }
 
   constructor() {
+    const runtime = getRuntimeConfig();
     this.mcpClientAdapter = MCPClientsAdapter.getMultipleClientsConnection({
       mcpServers: {
         "metrics-extractor": {
@@ -56,7 +58,7 @@ export class MainAgentExecutor implements AgentExecutor {
           args: [
             "run",
             "--prefix",
-            process.env.METRICS_MCP_PATH ?? "",
+            runtime.mcp_servers.metrics_extractor_path,
             "mcp-server/metrics-extractor",
           ],
         },
@@ -66,7 +68,7 @@ export class MainAgentExecutor implements AgentExecutor {
     this.initializeAgent();
     // inicializa store de conversas (file-backed por padrão)
     try {
-      this.conversationStore = ConversationStore.init(process.env.CONVO_STORE_PATH ?? "data/conversations");
+      this.conversationStore = ConversationStore.init(runtime.conversation_store_path);
     } catch (e) {
       // fallback para store em memória
       // @ts-ignore
