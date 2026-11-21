@@ -1,6 +1,9 @@
 import { BasicTool } from "@domain/mcp/servers/tools/BasicTool.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { exec } from "child_process";
+import fs from "fs/promises";
+import path from "path";
+import { Dirent } from "fs";
 import { promisify } from "util";
 import z from "zod";
 
@@ -95,5 +98,63 @@ export class SearchInFileSystemTool extends BasicTool<
 
   private escapePowerShellSingleQuotedString(value: string) {
     return value.replace(/'/g, "''");
+  }
+}
+
+export class LinuxSearchInFileSystemTool extends BasicTool<
+  typeof SearchInFileSystemToolSchema
+> {
+  constructor() {
+    super(
+      "Linux_Search_In_File_System",
+      `Recursively searches for Linux/POSIX files whose names match a regular expression. The response is a JSON array with Name and DirectoryName fields.`,
+      SearchInFileSystemToolSchema,
+    );
+  }
+
+  public async invoke({
+    path: targetPath,
+    pattern,
+  }: z.infer<typeof SearchInFileSystemToolSchema>): Promise<CallToolResult> {
+    const resolvedPath = targetPath ?? ".";
+
+    try {
+      const expression = new RegExp(pattern);
+      const matches = await this.searchDirectory(resolvedPath, expression);
+      return {
+        content: [{ type: "text", text: JSON.stringify(matches) }],
+      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      return {
+        content: [{
+          type: "text",
+          text: `Error while searching Linux file system: ${reason}`,
+        }],
+        isError: true,
+      };
+    }
+  }
+
+  private async searchDirectory(
+    directoryPath: string,
+    expression: RegExp,
+  ): Promise<Array<{ Name: string; DirectoryName: string }>> {
+    const matches: Array<{ Name: string; DirectoryName: string }> = [];
+    const entries: Dirent[] = await fs.readdir(directoryPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryPath = path.join(directoryPath, entry.name);
+      if (entry.isDirectory()) {
+        matches.push(...await this.searchDirectory(entryPath, expression));
+      } else if (entry.isFile() && expression.test(entry.name)) {
+        matches.push({
+          Name: entry.name,
+          DirectoryName: path.dirname(entryPath),
+        });
+      }
+    }
+
+    return matches;
   }
 }
