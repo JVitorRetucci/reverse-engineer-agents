@@ -115,3 +115,40 @@ export class DirectoryNavigationTool extends BasicTool<
     }
   }
 }
+
+export class LinuxDirectoryNavigationTool extends BasicTool<
+  typeof DirectoryNavigationToolSchema
+> {
+  constructor() {
+    super(
+      "Linux_Directory_Navigation",
+      `Calculates the next Linux/POSIX directory path. It does not change the process working directory. Reuse the returned path as currentPath for subsequent Linux tool calls.`,
+      DirectoryNavigationToolSchema,
+    );
+  }
+
+  public async invoke({
+    path: targetPath,
+    currentPath,
+  }: z.infer<typeof DirectoryNavigationToolSchema>): Promise<CallToolResult> {
+    try {
+      const basePath = currentPath ?? process.cwd();
+      const resolvedPath = path.posix.isAbsolute(targetPath)
+        ? path.posix.normalize(targetPath)
+        : path.posix.resolve(basePath, targetPath);
+
+      return {
+        content: [{ type: "text", text: resolvedPath }],
+      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      return {
+        content: [{
+          type: "text",
+          text: `Error while resolving Linux directory navigation path: ${reason}`,
+        }],
+        isError: true,
+      };
+    }
+  }
+}

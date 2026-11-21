@@ -1,6 +1,7 @@
 import { BasicTool } from "@domain/mcp/servers/tools/BasicTool.js";
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { exec } from "child_process";
+import fs from "fs/promises";
 import path from "path";
 import { promisify } from "util";
 import z from "zod";
@@ -81,6 +82,38 @@ export class GetFileContentTool extends BasicTool<
             text: formattedErrorMessage,
           },
         ],
+        isError: true,
+      };
+    }
+  }
+}
+
+export class LinuxGetFileContentTool extends BasicTool<
+  typeof GetFileContentToolSchema
+> {
+  constructor() {
+    super(
+      "Linux_Get_File_Content",
+      `Reads file content from a Linux/POSIX filesystem using Node.js UTF-8 file access. Accepts absolute or relative Linux paths.`,
+      GetFileContentToolSchema,
+    );
+  }
+
+  public async invoke({
+    path: filePath,
+  }: z.infer<typeof GetFileContentToolSchema>): Promise<CallToolResult> {
+    try {
+      const content = await fs.readFile(filePath, "utf8");
+      return {
+        content: [{ type: "text", text: content }],
+      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      return {
+        content: [{
+          type: "text",
+          text: `Error while getting Linux file content: ${reason}`,
+        }],
         isError: true,
       };
     }

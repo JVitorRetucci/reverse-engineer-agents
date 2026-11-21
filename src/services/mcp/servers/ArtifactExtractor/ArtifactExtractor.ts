@@ -11,6 +11,10 @@ interface IArtifactExtractorServerParams {
   directoryNavigationToolFactory: DirectoryNavigationToolFactory;
   getFileContentToolFactory: GetFileContentToolFactory;
   searchInFileSystemToolFactory: SearchInFileSystemToolFactory;
+  linuxListDirectoriesToolFactory: ListDirectoriesToolFactory;
+  linuxDirectoryNavigationToolFactory: DirectoryNavigationToolFactory;
+  linuxGetFileContentToolFactory: GetFileContentToolFactory;
+  linuxSearchInFileSystemToolFactory: SearchInFileSystemToolFactory;
 }
 
 export const mcpServerConfig: {
@@ -30,13 +34,32 @@ export const mcpServerConfig: {
 };
 
 export class ArtifactExtractorServer extends McpServer {
-  constructor({ listDirectoriesToolFactory, directoryNavigationToolFactory, getFileContentToolFactory, searchInFileSystemToolFactory }: IArtifactExtractorServerParams) {
+  constructor({
+    listDirectoriesToolFactory,
+    directoryNavigationToolFactory,
+    getFileContentToolFactory,
+    searchInFileSystemToolFactory,
+    linuxListDirectoriesToolFactory,
+    linuxDirectoryNavigationToolFactory,
+    linuxGetFileContentToolFactory,
+    linuxSearchInFileSystemToolFactory,
+  }: IArtifactExtractorServerParams) {
     super(mcpServerConfig.serverInfo);
 
     const listDirectoriesTool = listDirectoriesToolFactory.createToolClass();
     const directoryNavigationTool = directoryNavigationToolFactory.createToolClass();
     const getFileContentTool = getFileContentToolFactory.createToolClass();
     const searchInFileSystemTool = searchInFileSystemToolFactory.createToolClass();
+    const linuxListDirectoriesTool = linuxListDirectoriesToolFactory.createToolClass();
+    const linuxDirectoryNavigationTool = linuxDirectoryNavigationToolFactory.createToolClass();
+    const linuxGetFileContentTool = linuxGetFileContentToolFactory.createToolClass();
+    const linuxSearchInFileSystemTool = linuxSearchInFileSystemToolFactory.createToolClass();
+    const linuxTools = [
+      linuxListDirectoriesTool,
+      linuxDirectoryNavigationTool,
+      linuxGetFileContentTool,
+      linuxSearchInFileSystemTool,
+    ];
 
     super.registerTool(
       listDirectoriesTool.name,
@@ -73,5 +96,16 @@ export class ArtifactExtractorServer extends McpServer {
       },
       searchInFileSystemTool.invoke.bind(searchInFileSystemTool)
     );
+
+    for (const tool of linuxTools) {
+      super.registerTool(
+        tool.name,
+        {
+          description: tool.description,
+          inputSchema: tool.parametersSchema,
+        },
+        tool.invoke.bind(tool),
+      );
+    }
   }
 }

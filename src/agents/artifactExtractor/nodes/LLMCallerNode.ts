@@ -38,6 +38,8 @@ const PROMPT_TEMPLATE = [
   "",
   "Tool usage policy:",
   "- Use available tools to execute extraction work.",
+  "- Choose the tool family that matches the caller-provided root path and target operating system: use PowerShell_* for Windows paths and Linux_* for Linux/POSIX paths.",
+  "- The Linux tools are: Linux_Search_In_File_System, Linux_Directory_Listing, Linux_Directory_Navigation, and Linux_Get_File_Content.",
   "- Treat path existence as untrusted until it is verified by the tools.",
   "- Make direct, evidence-oriented calls: state the exact target and the expected signal before each tool invocation.",
   "- When the request mentions a file, folder, module, or symbol and the exact path is not already confirmed, first search for candidates with PowerShell_Search_In_File_System instead of guessing a path.",

@@ -1,15 +1,19 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { PowerShellListDirectoriesToolFactory } from "@services/mcp/toolFactories/ListDirectoriesToolFactory.js";
+import { LinuxListDirectoriesToolFactory, PowerShellListDirectoriesToolFactory } from "@services/mcp/toolFactories/ListDirectoriesToolFactory.js";
 import { ArtifactExtractorServer } from "./ArtifactExtractor.js";
-import { PowerShellDirectoryNavigationToolFactory } from "@services/mcp/toolFactories/DirectoryNavigationToolFactory.js";
-import { PowerShellGetFileContentToolFactory } from "@services/mcp/toolFactories/GetFileContentToolFactory.js";
-import { PowerShellSearchInFileSystemToolFactory } from "@services/mcp/toolFactories/SearchInFileSystemToolFactory.js";
+import { LinuxDirectoryNavigationToolFactory, PowerShellDirectoryNavigationToolFactory } from "@services/mcp/toolFactories/DirectoryNavigationToolFactory.js";
+import { LinuxGetFileContentToolFactory, PowerShellGetFileContentToolFactory } from "@services/mcp/toolFactories/GetFileContentToolFactory.js";
+import { LinuxSearchInFileSystemToolFactory, PowerShellSearchInFileSystemToolFactory } from "@services/mcp/toolFactories/SearchInFileSystemToolFactory.js";
 
 const server = new ArtifactExtractorServer({
   listDirectoriesToolFactory: new PowerShellListDirectoriesToolFactory(),
   directoryNavigationToolFactory: new PowerShellDirectoryNavigationToolFactory(),
   getFileContentToolFactory: new PowerShellGetFileContentToolFactory(),
   searchInFileSystemToolFactory: new PowerShellSearchInFileSystemToolFactory(),
+  linuxListDirectoriesToolFactory: new LinuxListDirectoriesToolFactory(),
+  linuxDirectoryNavigationToolFactory: new LinuxDirectoryNavigationToolFactory(),
+  linuxGetFileContentToolFactory: new LinuxGetFileContentToolFactory(),
+  linuxSearchInFileSystemToolFactory: new LinuxSearchInFileSystemToolFactory(),
 });
 
 const transport = new StdioServerTransport();
