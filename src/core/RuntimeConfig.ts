@@ -4,6 +4,8 @@ import { join } from "path";
 export interface RuntimeConfig {
   cors_origin: string[];
   frontend_origin: string;
+  host_projects_path: string;
+  host_projects_mount_source: string;
   debug_mode: boolean;
   debug_graph_path: string;
   max_agent_iterations: number;
@@ -26,6 +28,8 @@ export interface RuntimeConfig {
 const defaults: RuntimeConfig = {
   cors_origin: [],
   frontend_origin: "http://localhost:3000",
+  host_projects_path: "/workspace/projects",
+  host_projects_mount_source: "..",
   debug_mode: false,
   debug_graph_path: "",
   max_agent_iterations: 50,

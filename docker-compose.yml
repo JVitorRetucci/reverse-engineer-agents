@@ -1,0 +1,44 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+      - "4101:4101"
+      - "4102:4102"
+      - "4103:4103"
+      - "4201:4201"
+      - "4202:4202"
+      - "4203:4203"
+    env_file:
+      - .env
+    environment:
+      OPEN_ROUTER_API_KEY: ${OPEN_ROUTER_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_GEN_AI_API_KEY: ${GOOGLE_GEN_AI_API_KEY:-}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - ${HOST_PROJECTS_PATH:-..}:/workspace/projects:rw
+
+  frontend:
+    build:
+      context: ../reverse-engineer-agents-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      AGENT_ENDPOINT: http://backend:4000
+      NEXT_PUBLIC_AGENT_ENDPOINT: http://localhost:4000
+      CHAT_REQUEST_TIMEOUT_MS: ${CHAT_REQUEST_TIMEOUT_MS:-600000}
+      HOST_PROJECTS_MOUNT_PATH: /workspace/projects
+    volumes:
+      - ../reverse-engineer-agents-frontend:/app
+      - /app/node_modules
+      - /app/.next
+      - ${HOST_PROJECTS_PATH:-..}:/workspace/projects:ro
+    depends_on:
+      - backend

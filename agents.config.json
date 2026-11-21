@@ -1,10 +1,12 @@
 {
   "default_llm_service": "open_router",
-  "default_llm_model": "anthropic/claude-sonnet-5",
+  "default_llm_model": "liquid/lfm-3-1.7b:free",
   "runtime": {
     "cors_origin": [],
     "frontend_origin": "http://localhost:3000",
-    "debug_mode": false,
+    "host_projects_path": "/workspace/projects",
+    "host_projects_mount_source": "..",
+    "debug_mode": true,
     "debug_graph_path": "",
     "max_agent_iterations": 50,
     "max_agent_tool_error_attempts": 5,
