@@ -6,6 +6,7 @@ import { createA2AClientWithTimeout } from "@agents/common/utils/a2aClientFactor
 import { Message, MessageSendParams } from "@a2a-js/sdk";
 import { v4 as uuidv4 } from "uuid";
 import ConversationStore from "@agents/common/store/ConversationStore.js";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 
 interface IAgentsCallerNodeParams {
   agents: Record<string, string>; // { [agent_name]: agent_url }
@@ -183,7 +184,7 @@ export class AgentsCallerNode extends Node<AgentState> {
     try {
       const contextId: string | undefined = (state as any).contextId;
       if (contextId && toolResults.length > 0) {
-        const store = ConversationStore.init(process.env.CONVO_STORE_PATH ?? "data/conversations");
+        const store = ConversationStore.init(getRuntimeConfig().conversation_store_path);
         const toAppend = toolResults.map((t) => ({ role: "tool", content: typeof t.content === 'string' ? t.content : JSON.stringify(t.content) }));
         store.appendMessages(contextId, toAppend as any);
       }

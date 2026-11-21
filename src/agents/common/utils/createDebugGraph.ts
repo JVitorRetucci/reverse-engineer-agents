@@ -1,16 +1,18 @@
 import { CompiledStateGraph } from "@langchain/langgraph";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 
 export default async function createDebugGraph(graphName: string, agent: CompiledStateGraph<any, any, any, any, any, any, any, any, any>) {
-  if (process.env.DEBUG_MODE !== 'true') return;
+  const runtime = getRuntimeConfig();
+  if (!runtime.debug_mode) return;
 
   const graph = await agent.getGraphAsync();
   const blob = await graph.drawMermaidPng();
   const arrayBuffer = await blob.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
   
-  const debugGraphPath = process.env.DEBUG_GRAPH_PATH;
+  const debugGraphPath = runtime.debug_graph_path;
   
   if (!debugGraphPath) {
     console.warn('DEBUG_GRAPH_PATH is not defined. Skipping debug graph creation.');

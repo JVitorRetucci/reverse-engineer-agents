@@ -17,6 +17,7 @@ import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { DiagramSpecialistAgent } from "./agent.js";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 
 export class DiagramSpecialistAgentExecutor implements AgentExecutor {
   private agent?: CompiledStateGraph<
@@ -27,6 +28,7 @@ export class DiagramSpecialistAgentExecutor implements AgentExecutor {
   private mcpClientAdapter: MultiServerMCPClient;
 
   constructor() {
+    const runtime = getRuntimeConfig();
     this.mcpClientAdapter = MCPClientsAdapter.getMultipleClientsConnection({
       mcpServers: {
         "artifact-extractor": {
@@ -34,7 +36,7 @@ export class DiagramSpecialistAgentExecutor implements AgentExecutor {
           args: [
             "run",
             "--prefix",
-            process.env.ARTIFACT_EXTRACTOR_MCP_PATH ?? "",
+            runtime.mcp_servers.diagram_tools_path,
             "mcp-server/diagram-generation-tools",
           ],
         },
@@ -122,7 +124,7 @@ export class DiagramSpecialistAgentExecutor implements AgentExecutor {
     const initialIteration =
       requestContext.userMessage.role === "user"
         ? 0
-        : ((requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
+        : (Number(requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
 
     const result = (await this.agent.invoke({
       iterationLevel: initialIteration,

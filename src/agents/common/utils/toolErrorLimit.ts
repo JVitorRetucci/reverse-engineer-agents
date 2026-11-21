@@ -1,9 +1,8 @@
 import { BaseMessage, ToolMessage } from "@langchain/core/messages";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 
-const DEFAULT_MAX_TOOL_ERROR_ATTEMPTS = parseInt(
-  process.env.MAX_AGENT_TOOL_ERROR_ATTEMPTS ?? "5",
-  10,
-);
+const DEFAULT_MAX_TOOL_ERROR_ATTEMPTS =
+  getRuntimeConfig().max_agent_tool_error_attempts;
 
 function extractErrorText(message: ToolMessage): string | null {
   const content = message.content;

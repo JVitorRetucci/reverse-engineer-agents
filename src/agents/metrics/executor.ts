@@ -17,6 +17,7 @@ import { CompiledStateGraph } from "@langchain/langgraph";
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 
 export class MetricsAgentExecutor implements AgentExecutor {
   private agent?: CompiledStateGraph<
@@ -27,6 +28,7 @@ export class MetricsAgentExecutor implements AgentExecutor {
   private mcpClientAdapter: MultiServerMCPClient;
 
   constructor() {
+    const runtime = getRuntimeConfig();
     this.mcpClientAdapter = MCPClientsAdapter.getMultipleClientsConnection({
       mcpServers: {
         "metrics-extractor": {
@@ -34,7 +36,7 @@ export class MetricsAgentExecutor implements AgentExecutor {
           args: [
             "run",
             "--prefix",
-            process.env.METRICS_MCP_PATH ?? "",
+            runtime.mcp_servers.metrics_extractor_path,
             "mcp-server/metrics-extractor",
           ],
         },

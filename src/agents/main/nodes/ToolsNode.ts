@@ -3,6 +3,7 @@ import { AgentState } from "@agents/common/states/AgentState.js";
 import { AIMessage, ToolMessage } from "@langchain/core/messages";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import ConversationStore from "@agents/common/store/ConversationStore.js";
+import { getRuntimeConfig } from "@core/RuntimeConfig.js";
 
 interface IToolsNodeParams<T> {
   tools: T[];
@@ -80,7 +81,7 @@ export class ToolsNode<
     try {
       const contextId: string | undefined = (state as any).contextId;
       if (contextId && toolResults.length > 0) {
-        const store = ConversationStore.init(process.env.CONVO_STORE_PATH ?? "data/conversations");
+        const store = ConversationStore.init(getRuntimeConfig().conversation_store_path);
         const toAppend = toolResults.map((r) => ({ role: "tool", content: r.content }));
         store.appendMessages(contextId, toAppend as any);
         // do not close store (file-backed) to allow reuse; in-memory store will be GC'd
