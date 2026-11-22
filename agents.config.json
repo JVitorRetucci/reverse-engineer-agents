@@ -13,9 +13,9 @@
     "conversation_store_path": "data/conversations",
     "conversation_window": 20,
     "langsmith": {
-      "tracing": false,
+      "tracing": true,
       "endpoint": "",
-      "tracing_v2": false,
+      "tracing_v2": true,
       "project": ""
     },
     "mcp_servers": {
