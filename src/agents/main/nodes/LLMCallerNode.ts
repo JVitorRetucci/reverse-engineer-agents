@@ -2,6 +2,7 @@ import { Node } from "@agents/common/nodes/Node.js";
 import { AgentState } from "@agents/common/states/AgentState.js";
 import { LLMService } from "@domain/agents/common/LLMService.js";
 import {
+  AIMessage,
   BaseMessage,
   HumanMessage,
   SystemMessage,
@@ -87,7 +88,20 @@ const PROMPT_TEMPLATE = [
 "",
 "### Output strategy:",
 "- Distinguish clearly between the initial response and subsequent detailed analyses.",
-"- Based in the chat-history given, infer if it is your first response.", 
+"- Before choosing the response format, determine whether this is the first user turn or a continuation.",
+"- FIRST RESPONSE means that the current chat state contains no previously exchanged user and assistant messages.",
+"- CONTINUATION means that the chat history contains at least one previous user message or one previous assistant response.",
+"- When systemPromptVersion is used, retain all other current behavior instructions but do not activate the first-response contract unless the chat state is a true first response.",
+"",
+"### Conversation-phase rule:",
+"- Use the first-response contract only for the first complete response in a chat, after all mandatory information has been collected.",
+"- Do not treat tool calls, sub-agent responses, tool messages, or intermediate graph iterations as separate user-facing turns.",
+"- If any prior user or assistant message already exists in the chat history, enter CONTINUATION mode.",
+"- In CONTINUATION mode, ignore the 'First analysis contract' and all of its structure requirements completely.",
+"- In CONTINUATION mode, answer the user's latest request directly and normally, while preserving relevant prior context.",
+"- Never repeat the first-response template, its Mermaid sequence diagram, or the seven-section structure in later turns unless the user explicitly asks for a complete new analysis in that format.",
+"- Do not infer that a response is first merely because mandatory fields have already been collected again or a new internal analysis cycle started.",
+"- Once the chat has a prior turn, every subsequent response must remain in CONTINUATION mode.",
 "- The first complete response and analysis should prioritize business-flow understanding before implementation understanding.",
 "- Always prefer presenting the sequence diagram before discussing classes, methods, or source-code details.",
 "- When sufficient information is available, generate an UML sequence diagram in Mermaid syntax representing the reconstructed use-case flow.",
@@ -198,9 +212,26 @@ export class LLMCallerNode extends Node<AgentState> {
       );
     }
     const systemPromptVersion = state.systemPromptVersion;
+    const humanMessageCount = (state.messages ?? []).filter(
+      (message) => message instanceof HumanMessage,
+    ).length;
+    const aiMessageCount = (state.messages ?? []).filter(
+      (message) => message instanceof AIMessage,
+    ).length;
+    const isFirstResponse =
+      state.isFirstResponse ??
+      (humanMessageCount <= 1 && aiMessageCount === 0);
+    const conversationPhase = isFirstResponse
+      ? "CONVERSATION_PHASE:FIRST_RESPONSE"
+      : "CONVERSATION_PHASE:CONTINUATION";
+
     const systemMessage = systemPromptVersion
-      ? new SystemMessage(`[SystemPromptVersion:${systemPromptVersion}]`)
-      : new SystemMessage(PROMPT_TEMPLATE);
+      ? new SystemMessage(
+          `[SystemPromptVersion:${systemPromptVersion}] ${conversationPhase}. The first-response contract is enabled only in FIRST_RESPONSE mode. In CONTINUATION mode, ignore every first-response or initial-response formatting/template requirement and answer the latest user request normally.`,
+        )
+      : new SystemMessage(
+          `${conversationPhase}. ${PROMPT_TEMPLATE}`,
+        );
 
     const history = (state.messages ?? []).slice(-this.windowSize);
 

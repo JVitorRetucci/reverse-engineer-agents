@@ -180,9 +180,11 @@ export class MainAgentExecutor implements AgentExecutor {
 
     // Carrega histórico do store (se existir) e converte para BaseMessage[]
     let stateMessages = mappedMessages;
+    let storedHistoryLength = 0;
     if (contextId) {
       try {
         const stored = this.conversationStore.loadHistory(contextId, { window: 20 });
+        storedHistoryLength = stored.length;
         const converted = stored.map((s) => {
           const content = s.content;
           const role = (s.role || "user").toString();
@@ -202,6 +204,7 @@ export class MainAgentExecutor implements AgentExecutor {
         requestContext.userMessage.role === "user"
           ? 0
           : (Number(requestContext.userMessage.metadata?.iterationLevel ?? 0) + 1);
+      const isFirstResponse = storedHistoryLength === 0;
 
       result = (await this.agent.invoke(
         {
@@ -209,7 +212,8 @@ export class MainAgentExecutor implements AgentExecutor {
           requestContext.userMessage.role === "user"
           ? 0
           : (requestContext.userMessage.metadata?.iterationLevel ?? 0 + 1),
-          messages: mappedMessages,
+          isFirstResponse,
+          messages: stateMessages,
         },
         { recursionLimit: 100, runName: "Main Agent" },
       )) as AgentState;
