@@ -54,4 +54,46 @@ describe('LLMCallerNode', () => {
     expect((params[0] as SystemMessage).content.length).toBeGreaterThan(10);
     expect(params.length).toBe(2); // system + 1 message
   });
+
+  it('marks an initial chat turn as FIRST_RESPONSE', async () => {
+    const invokedWith: BaseMessage[][] = [];
+    const mockLLM = {
+      invoke: async (params: BaseMessage[]) => {
+        invokedWith.push(params);
+        return new AIMessage('ok');
+      },
+    } as any;
+
+    const node = new LLMCallerNode(mockLLM, 5);
+    await node.execute({
+      messages: [new HumanMessage('new chat')],
+      isFirstResponse: true,
+    } as AgentState);
+
+    expect((invokedWith[0][0] as SystemMessage).content)
+      .toContain('CONVERSATION_PHASE:FIRST_RESPONSE');
+  });
+
+  it('marks a chat with history as CONTINUATION', async () => {
+    const invokedWith: BaseMessage[][] = [];
+    const mockLLM = {
+      invoke: async (params: BaseMessage[]) => {
+        invokedWith.push(params);
+        return new AIMessage('ok');
+      },
+    } as any;
+
+    const node = new LLMCallerNode(mockLLM, 5);
+    await node.execute({
+      messages: [
+        new HumanMessage('first question'),
+        new AIMessage('first answer'),
+        new HumanMessage('follow-up'),
+      ],
+      isFirstResponse: false,
+    } as AgentState);
+
+    expect((invokedWith[0][0] as SystemMessage).content)
+      .toContain('CONVERSATION_PHASE:CONTINUATION');
+  });
 });

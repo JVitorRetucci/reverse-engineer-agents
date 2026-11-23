@@ -10,6 +10,7 @@ export const AgentStateSchema = z.object({
   contextId: z.string().optional(),
   systemPromptVersion: z.string().optional(),
   storedCursor: z.number().optional(),
+  isFirstResponse: z.boolean().optional(),
 });
 
 export type AgentState = z.infer<typeof AgentStateSchema>
