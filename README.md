@@ -58,6 +58,8 @@ Configure pelo menos uma chave de API no `.env` da pasta do backend. Por exemplo
 OPEN_ROUTER_API_KEY=sua-chave
 ```
 
+Nesse modo, as dependências do backend são instaladas durante a construção da imagem Docker: o SCC é baixado pelo `Dockerfile`, e o Mermaid CLI e seu Chromium são instalados pelo `npm ci`, junto com as bibliotecas de sistema necessárias. Não é preciso instalar Node.js, SCC ou Mermaid CLI no computador; é necessário ter o Docker instalado e configurar o `.env`.
+
 A pasta montada é configurada em `agents.config.json` por `runtime.host_projects_mount_source`.
 Por padrão, ela usa `..`, montando a pasta pai dos projetos.
 O diretório aparece no backend e no frontend como `/workspace/projects`.
@@ -80,7 +82,9 @@ Para parar os containers:
 docker compose down
 ```
 
-Follow these steps to install and run the project:
+### Execução local sem Docker (opcional)
+
+Os passos abaixo são apenas para executar o backend diretamente no computador. Nesse modo, é necessário instalar as dependências do projeto localmente; o SCC também precisa estar disponível no `PATH` para extração de métricas.
 
 ### 1. Clone the repository
 
