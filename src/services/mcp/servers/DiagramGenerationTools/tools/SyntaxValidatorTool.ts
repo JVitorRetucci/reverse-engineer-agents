@@ -104,15 +104,24 @@ private async validateMermaid(code: string): Promise<{
 }> {
   const tmpFile = path.join(os.tmpdir(), `diagram-${Date.now()}.mmd`);
   const tmpOut = path.join(os.tmpdir(), `diagram-out-${Date.now()}.png`);
+  const puppeteerConfig = path.join(
+    os.tmpdir(),
+    `diagram-puppeteer-${Date.now()}.json`,
+  );
   await fs.writeFile(tmpFile, code);
+  await fs.writeFile(
+    puppeteerConfig,
+    JSON.stringify({ args: ["--no-sandbox", "--disable-setuid-sandbox"] }),
+  );
 
   return new Promise((resolve) => {
     exec(
-      `npx mmdc -i "${tmpFile}" -o "${tmpOut}"`,
+      `npx mmdc -p "${puppeteerConfig}" -i "${tmpFile}" -o "${tmpOut}"`,
       (error, stdout, stderr) => {
-        // Ensure we attempt to remove both temporary files regardless of outcome
+        // Ensure temporary files are removed regardless of validation outcome.
         fs.rm(tmpFile, { force: true }).catch(() => {});
         fs.rm(tmpOut, { force: true }).catch(() => {});
+        fs.rm(puppeteerConfig, { force: true }).catch(() => {});
 
         if (error) {
           resolve({
