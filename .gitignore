@@ -11,8 +11,17 @@ npm-debug.log*
 build/
 dist/
 
+# Test and Debug artifacts
+coverage/
+debug/
+data/
+
 # macOS specific
 .DS_Store
 
 # Windows specific
 Thumbs.db
+
+# Local management
+_todo/
+_past_responses/

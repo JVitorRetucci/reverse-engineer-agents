@@ -1,0 +1,185 @@
+{
+  "default_llm_service": "open_router",
+  "default_llm_model": "liquid/lfm-3-1.7b:free",
+  "runtime": {
+    "cors_origin": [],
+    "frontend_origin": "http://localhost:3000",
+    "host_projects_path": "/workspace/projects",
+    "host_projects_mount_source": "..",
+    "debug_mode": true,
+    "debug_graph_path": "",
+    "max_agent_iterations": 50,
+    "max_agent_tool_error_attempts": 5,
+    "conversation_store_path": "data/conversations",
+    "conversation_window": 20,
+    "langsmith": {
+      "tracing": true,
+      "endpoint": "",
+      "tracing_v2": true,
+      "project": ""
+    },
+    "mcp_servers": {
+      "metrics_extractor_path": "./",
+      "artifact_extractor_path": "./",
+      "diagram_tools_path": "./"
+    }
+  },
+  "agents": [
+    {
+      "id": "main",
+      "name": "Software Reverse Engineering Agent",
+      "description": "An agent capable of performing long and complex software reverse engineering tasks by delegating work to multiple other agents",
+      "port": 4000,
+      "executorPath": "../agents/main/executor.ts",
+      "executorClass": "MainAgentExecutor",
+      "skill": {
+        "id": "software_reverse_engineering",
+        "name": "Software reverse engineering tasks",
+        "description": "Help with complex and multi-step software reverse engineering tasks",
+        "tags": [
+          "software reverse engineering",
+          "software understanding",
+          "software engineering"
+        ]
+      }
+    },
+    {
+      "id": "architecture-contract-validator",
+      "name": "Architecture Contract Validator Intermediate Agent",
+      "description": "Intermediate agent that validates flows, use-cases, and architectures against a desired architecture using extractor evidence provided by caller context. It must not call the architecture extractor directly and can use PEC agents only as narrow fallback.",
+      "port": 4101,
+      "executorPath": "../agents/architectureContractValidator/executor.ts",
+      "executorClass": "ArchitectureContractValidatorAgentExecutor",
+      "skill": {
+        "id": "architecture_contract_validation",
+        "name": "Architecture contract validation",
+        "description": "Validate if a flow, use-case, or architecture is violating architectural contracts based on the desired architecture",
+        "tags": [
+          "architecture",
+          "architecture validation",
+          "contracts",
+          "intermediate agent",
+          "high-level agent"
+        ],
+        "examples": [
+          "Validate if this use-case flow violates our clean architecture contracts",
+          "Given this desired architecture, identify contract violations in the current implementation"
+        ]
+      }
+    },
+    {
+      "id": "architecture-contract-extractor",
+      "name": "Architecture Contract Extractor Intermediate Agent",
+      "description": "Intermediate agent that extracts a high-level architecture view scoped to the analyzed use-case and discover/infers expected architecture rules for downstream validation. It is the required first step before Architecture Contract Validator for architecture evidence gathering.",
+      "port": 4102,
+      "executorPath": "../agents/architectureContractExtractor/executor.ts",
+      "executorClass": "ArchitectureContractExtractorAgentExecutor",
+      "skill": {
+        "id": "architecture_contract_extraction",
+        "name": "Architecture contract extraction",
+        "description": "Recover scoped architecture elements/relations for a specific use-case and infer likely architecture contracts expected for the system.",
+        "tags": [
+          "architecture",
+          "architecture extraction",
+          "contracts",
+          "intermediate agent",
+          "high-level agent",
+          "use-case scoped"
+        ],
+        "examples": [
+          "Extract the architecture involved only in this use-case and infer expected architecture rules",
+          "Given this flow, recover the related architectural components and relationships for contract validation"
+        ]
+      }
+    },
+    {
+      "id": "usecase-specialist",
+      "name": "Use Case Specialist Agent",
+      "description": "Discovers, analyzes, and explains the implementation of a specific use case. It supports two operating modes: default for concise, high-level overviews and specific for focused, detailed investigations of a requested flow, rule, exception, or dependency.",
+      "port": 4103,
+      "executorPath": "../agents/useCaseSpecialist/executor.ts",
+      "executorClass": "UseCaseSpecialistAgentExecutor",
+      "skill": {
+        "id": "usecase_information_discover",
+        "name": "Use case information discover",
+        "description": "Discovers and explains a specific use case in either default mode for high-level overviews or specific mode for focused, detailed investigations of a requested flow, rule, exception, or dependency.",
+        "tags": [
+          "usecase",
+          "user story",
+          "functionality discover",
+          "intermediate agent",
+          "high-level agent",
+          "use-case scoped"
+        ],
+        "examples": [
+          "Give me information about the execution flow of the use case 'X'. Return with it a high abstraction level sequence diagram.",
+          "Given this flow of usecase 'Y', recover the related architectural artifacts.",
+          "Use default mode for a concise overview of the use case 'Z'.",
+          "Use specific mode to inspect the exception flow of use case 'Z' in detail."
+        ]
+      }
+    },
+    {
+      "id": "metrics",
+      "name": "Metrics Primary Extractor Component",
+      "description": "Help with raw metrics software data",
+      "port": 4201,
+      "executorPath": "../agents/metrics/executor.ts",
+      "executorClass": "MetricsAgentExecutor",
+      "skill": {
+        "id": "software_metrics_extraction",
+        "name": "Uses SCC software in order to extract metrics from target software",
+        "description": "Help with raw metrics software data",
+        "tags": ["software metrics", "scc", "metrics extractor"],
+        "examples": [
+          "I need metrics from software located at './'",
+          "Give me data about the project located at './folder/extraction_project'"
+        ]
+      }
+    },
+    {
+      "id": "artifact-extractor",
+      "name": "Artifact Primary Extractor Component",
+      "description": "Help with artifact related file content extraction",
+      "port": 4202,
+      "executorPath": "../agents/artifactExtractor/executor.ts",
+      "executorClass": "ArtifactExtractorAgentExecutor",
+      "skill": {
+        "id": "artifact_extraction",
+        "name": "Uses powershell commands to navigate through folders and extract artifacts related to the request",
+        "description": "Help with the extraction of content from codebase related to the user's request",
+        "tags": [
+          "artifact extraction",
+          "codebase exploration",
+          "directory navigation"
+        ],
+        "examples": [
+          "I need the files related with class 'UserController'",
+          "Help me recover the content from the file './RegisterView.java'."
+        ]
+      }
+    },
+    {
+      "id": "diagram-specialist",
+      "name": "Diagram Specialist Primary Extractor Component",
+      "description": "Generates diagrams (primarily using mermaid DSL) based on prompted information",
+      "port": 4203,
+      "executorPath": "../agents/diagramSpecialist/executor.ts",
+      "executorClass": "DiagramSpecialistAgentExecutor",
+      "skill": {
+        "id": "diagram-generation",
+        "name": "Diagram generation",
+        "description": "Generates diagrams using mermaid syntax",
+        "tags": [
+          "diagram generation",
+          "uml",
+          "c4",
+          "graph"
+        ],
+        "examples": [
+          "I need the class diagram of classes related to 'UserController'"
+        ]
+      }
+    }
+  ]
+}
